@@ -1,9 +1,63 @@
 import axios from './cached-axios.js';
 import { idToTags } from '../data/id_tags.js';
 import { subjectsWithExtraTags } from '../data/extra_tag_subjects.js';
+import touhouCharacters from '../data/touhouCharacters.json';
 import { ATTRIBUTE_DEFINITIONS, getSharedWorks, enrichWithTouhouData } from './touhouDataset.js';
 
 const API_BASE_URL = 'https://api.bgm.tv';
+const TOUHOU_NAME_KEY = '角色';
+
+function getRandomTouhouEntry() {
+  if (!Array.isArray(touhouCharacters) || touhouCharacters.length === 0) return null;
+  return touhouCharacters[Math.floor(Math.random() * touhouCharacters.length)];
+}
+
+async function searchCharacterByKeyword(keyword) {
+  if (!keyword || typeof keyword !== 'string') return null;
+  const response = await axios.post(`${API_BASE_URL}/v0/search/characters?limit=1&offset=0`, {
+    keyword: keyword.trim()
+  });
+  return response?.data?.data?.[0] || null;
+}
+
+function buildCharacterFromRemote(remote, keyword = '') {
+  if (!remote) return null;
+
+  const nameCn = remote.infobox?.find(item => item.key === '简体中文名')?.value || remote.name || keyword;
+  const aliases = remote.infobox?.find(item => item.key === '别名')?.value;
+  let nameEn = keyword;
+  if (aliases && Array.isArray(aliases)) {
+    const englishName = aliases.find(alias => alias.k === '英文名');
+    if (englishName) {
+      nameEn = englishName.v;
+    } else {
+      const romaji = aliases.find(alias => alias.k === '罗马名');
+      if (romaji) {
+        nameEn = romaji.v;
+      }
+    }
+  }
+
+  return {
+    id: remote.id,
+    name: remote.name || keyword || '未知',
+    nameCn,
+    nameEn: nameEn || remote.name || keyword || '未知',
+    gender: typeof remote.gender === 'string' ? remote.gender : '?',
+    image: remote.images?.medium || remote.images?.grid || '',
+    imageGrid: remote.images?.grid || remote.images?.medium || '',
+    summary: remote.summary || '',
+    appearances: [],
+    appearanceIds: [],
+    latestAppearance: -1,
+    earliestAppearance: -1,
+    highestRating: -1,
+    popularity: remote.stat ? (remote.stat.collects + remote.stat.comments) : 0,
+    rawTags: new Map(),
+    animeVAs: [],
+    metaTags: idToTags[remote.id] || []
+  };
+}
 
 async function getSubjectDetails(subjectId) {
   try {
@@ -392,6 +446,22 @@ async function getCharactersBySubjectId(subjectId) {
 }
 
 async function getRandomCharacter(gameSettings) {
+  try {
+    const touhouEntry = getRandomTouhouEntry();
+    const keyword = touhouEntry ? (touhouEntry[TOUHOU_NAME_KEY] || '').trim() : '';
+    if (keyword) {
+      const remote = await searchCharacterByKeyword(keyword);
+      if (remote) {
+        const merged = buildCharacterFromRemote(remote, keyword);
+        if (merged) {
+          return enrichWithTouhouData(merged);
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('Touhou local selection failed, falling back to original logic:', error);
+  }
+
   try {
     let subject;
     let total;
