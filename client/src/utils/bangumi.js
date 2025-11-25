@@ -447,22 +447,22 @@ async function getCharactersBySubjectId(subjectId) {
 
 async function getRandomCharacter(gameSettings) {
   try {
-    const touhouEntry = getRandomTouhouEntry();
-    const keyword = touhouEntry ? (touhouEntry[TOUHOU_NAME_KEY] || '').trim() : '';
-    if (keyword) {
-      const remote = await searchCharacterByKeyword(keyword);
-      if (remote) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const touhouEntry = getRandomTouhouEntry();
+        const keyword = touhouEntry ? (touhouEntry[TOUHOU_NAME_KEY] || '').trim() : '';
+        if (!keyword) continue;
+        const remote = await searchCharacterByKeyword(keyword);
+        if (!remote) continue;
         const merged = buildCharacterFromRemote(remote, keyword);
         if (merged) {
           return enrichWithTouhouData(merged);
         }
+      } catch (err) {
+        console.warn(`Touhou local selection attempt ${attempt + 1} failed:`, err);
       }
     }
-  } catch (error) {
-    console.warn('Touhou local selection failed, falling back to original logic:', error);
-  }
 
-  try {
     let subject;
     let total;
     let randomOffset;
