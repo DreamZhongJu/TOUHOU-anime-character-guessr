@@ -15,6 +15,7 @@ import Leaderboard from '../components/Leaderboard';
 import Roulette from '../components/Roulette';
 import '../styles/Multiplayer.css';
 import '../styles/game.css';
+import { enrichWithTouhouData } from '../utils/touhouDataset';
 import CryptoJS from 'crypto-js';
 import axios from 'axios';
 const secret = import.meta.env.VITE_AES_SECRET || 'My-Secret-Key';
@@ -117,9 +118,11 @@ const Multiplayer = () => {
     newSocket.on('gameStart', ({ character, settings, players, isPublic, hints = null, isAnswerSetter: isAnswerSetterFlag }) => {
       gameEndedRef.current = false;
       const decryptedCharacter = JSON.parse(CryptoJS.AES.decrypt(character, secret).toString(CryptoJS.enc.Utf8));
-      decryptedCharacter.rawTags = new Map(decryptedCharacter.rawTags);
-      setAnswerCharacter(decryptedCharacter);
-      answerCharacterRef.current = decryptedCharacter;
+      decryptedCharacter.rawTags = new Map(decryptedCharacter.rawTags || []);
+      const enrichedCharacter = enrichWithTouhouData(decryptedCharacter);
+      setAnswerCharacter(enrichedCharacter);
+      answerCharacterRef.current = enrichedCharacter;
+      console.log('[DEBUG] 多人答案:', enrichedCharacter.nameCn || enrichedCharacter.name, `(id: ${enrichedCharacter.id})`);
       setGameSettings(settings);
       
       // Calculate guesses left based on current player's guess history
@@ -142,21 +145,21 @@ const Multiplayer = () => {
       let hintTexts = [];
       if (Array.isArray(settings.useHints) && settings.useHints.length > 0 && hints) {
         hintTexts = hints;
-      } else if (Array.isArray(settings.useHints) && settings.useHints.length > 0 && decryptedCharacter && decryptedCharacter.summary) {
+      } else if (Array.isArray(settings.useHints) && settings.useHints.length > 0 && enrichedCharacter && enrichedCharacter.summary) {
         // Automatic mode - generate hints from summary
-        const sentences = decryptedCharacter.summary.replace('[mask]', '').replace('[/mask]','')
-          .split(/[。、，。！？ ""]/).filter(s => s.trim());
+        const sentences = enrichedCharacter.summary.replace('[mask]', '').replace('[/mask]','')
+          .split(/[???????""]/).filter(s => s.trim());
         if (sentences.length > 0) {
           const selectedIndices = new Set();
           while (selectedIndices.size < Math.min(settings.useHints.length, sentences.length)) {
             selectedIndices.add(Math.floor(Math.random() * sentences.length));
           }
-          hintTexts = Array.from(selectedIndices).map(i => "……"+sentences[i].trim()+"……");
+          hintTexts = Array.from(selectedIndices).map(i => '...'+sentences[i].trim()+'...');
         }
       }
       setHints(hintTexts);
       setUseImageHint(settings.useImageHint);
-      setImgHint(settings.useImageHint > 0 ? decryptedCharacter.image : null);
+      setImgHint(settings.useImageHint > 0 ? enrichedCharacter.image : null);
       setGlobalGameEnd(false);
       setIsGameStarted(true);
       setGameEnd(false);
@@ -238,40 +241,38 @@ const Multiplayer = () => {
 
     // Listen for team guess broadcasts
     newSocket.on('boardcastTeamGuess', ({ guessData, playerId, playerName }) => {
+      if (!answerCharacterRef.current) return;
       if (guessData.rawTags) {
         guessData.rawTags = new Map(guessData.rawTags);
       }
-    
-      const feedback = generateFeedback(guessData, answerCharacterRef.current, gameSettingsRef.current);
-    
+
+      const enrichedGuess = enrichWithTouhouData({
+        ...guessData,
+        rawTags: guessData.rawTags || new Map()
+      });
+
+      const feedback = generateFeedback(enrichedGuess, answerCharacterRef.current);
+
       const newGuess = {
-        id: guessData.id,
-        icon: guessData.image,
-        name: guessData.name,
-        nameCn: guessData.nameCn,
-        nameEn: guessData.nameEn,
-        gender: guessData.gender,
-        genderFeedback: feedback.gender.feedback,
-        latestAppearance: guessData.latestAppearance,
-        latestAppearanceFeedback: feedback.latestAppearance.feedback,
-        earliestAppearance: guessData.earliestAppearance,
-        earliestAppearanceFeedback: feedback.earliestAppearance.feedback,
-        highestRating: guessData.highestRating,
-        ratingFeedback: feedback.rating.feedback,
-        appearancesCount: guessData.appearances.length,
-        appearancesCountFeedback: feedback.appearancesCount.feedback,
-        popularity: guessData.popularity,
-        popularityFeedback: feedback.popularity.feedback,
-        appearanceIds: guessData.appearanceIds,
-        sharedAppearances: feedback.shared_appearances,
+        id: enrichedGuess.id,
+        icon: enrichedGuess.image,
+        name: enrichedGuess.name,
+        nameCn: enrichedGuess.nameCn,
+        nameEn: enrichedGuess.nameEn,
+        gender: enrichedGuess.gender,
+        genderFeedback: enrichedGuess.gender === answerCharacterRef.current?.gender ? 'yes' : 'no',
         metaTags: feedback.metaTags.guess,
         sharedMetaTags: feedback.metaTags.shared,
+        sharedAppearances: feedback.shared_appearances,
+        touhouAttributes: feedback.touhouAttributes,
+        touhouWorks: feedback.touhouWorks?.guess || enrichedGuess.touhouWorks || [],
+        appearanceIds: enrichedGuess.appearanceIds,
         isAnswer: false,
         playerId,
         playerName,
-        guessrName: guessData.guessrName || playerName // prefer guessData.guessrName if present
+        guessrName: enrichedGuess.guessrName || playerName
       };
-    
+
       setGuesses(prev => [...prev, newGuess]);
       setGuessesLeft(prev => {
         const newGuessesLeft = prev - 1;
@@ -393,7 +394,7 @@ const Multiplayer = () => {
         playerHistory.guesses.some(guessEntry => guessEntry?.guessData?.id === character.id)
       );
       if (duplicateInHistory) {
-        alert('【全局BP】已经被别人猜过了！请尝试其他角色');
+        alert('???BP?????????????????');
         return;
       }
     }
@@ -403,114 +404,67 @@ const Multiplayer = () => {
 
     try {
       const appearances = await getCharacterAppearances(character.id, gameSettings);
-
-      const guessData = {
+      const rawTagsMap = appearances.rawTags || new Map();
+      const enrichedGuessData = enrichWithTouhouData({
         ...character,
-        ...appearances
+        ...appearances,
+        rawTags: rawTagsMap
+      });
+
+      const isCorrect = enrichedGuessData.id === answerCharacter.id;
+      const feedback = generateFeedback(enrichedGuessData, answerCharacter);
+      const guessPayload = {
+        ...enrichedGuessData,
+        rawTags: Array.from(rawTagsMap.entries()),
+        guessrName: username
       };
-      const isCorrect = guessData.id === answerCharacter.id;
-      // Send guess result to server
-      guessData.rawTags = Array.from(appearances.rawTags?.entries?.() || []);
-      if (!guessData || !guessData.id || !guessData.name) {
+
+      if (!guessPayload || !guessPayload.id || !guessPayload.name) {
         console.warn('Invalid guessData, not emitting');
         return;
       }
-      let tempFeedback = generateFeedback(guessData, answerCharacter, gameSettings);
+
+      const isLastGuess = guessesLeft <= 1;
       setGuessesLeft(prev => prev - 1);
       socketRef.current?.emit('playerGuess', {
         roomId,
         guessResult: {
           isCorrect,
-          isPartialCorrect: tempFeedback.shared_appearances.count > 0,
-          guessData
+          isPartialCorrect: feedback.shared_appearances.count > 0,
+          guessData: guessPayload
         }
       });
-      guessData.rawTags = new Map(guessData.rawTags);
-      const feedback = generateFeedback(guessData, answerCharacter, gameSettings);
+
+      const buildGuessEntry = (isAnswerFlag) => ({
+        id: enrichedGuessData.id,
+        icon: enrichedGuessData.image,
+        name: enrichedGuessData.name,
+        nameCn: enrichedGuessData.nameCn,
+        nameEn: enrichedGuessData.nameEn,
+        gender: enrichedGuessData.gender,
+        genderFeedback: enrichedGuessData.gender === answerCharacter.gender ? 'yes' : 'no',
+        metaTags: feedback.metaTags.guess,
+        sharedMetaTags: feedback.metaTags.shared,
+        sharedAppearances: feedback.shared_appearances,
+        touhouAttributes: feedback.touhouAttributes,
+        touhouWorks: feedback.touhouWorks?.guess || enrichedGuessData.touhouWorks || [],
+        appearanceIds: enrichedGuessData.appearanceIds,
+        guessrName: username,
+        isAnswer: isAnswerFlag
+      });
+
       if (isCorrect) {
-        setGuesses(prevGuesses => [...prevGuesses, {
-          id: guessData.id,
-          icon: guessData.image,
-          name: guessData.name,
-          nameCn: guessData.nameCn,
-          nameEn: guessData.nameEn,
-          gender: guessData.gender,
-          genderFeedback: 'yes',
-          latestAppearance: guessData.latestAppearance,
-          latestAppearanceFeedback: '=',
-          earliestAppearance: guessData.earliestAppearance,
-          earliestAppearanceFeedback: '=',
-          highestRating: guessData.highestRating,
-          ratingFeedback: '=',
-          appearancesCount: guessData.appearances.length,
-          appearancesCountFeedback: '=',
-          popularity: guessData.popularity,
-          popularityFeedback: '=',
-          appearanceIds: guessData.appearanceIds,
-          sharedAppearances: {
-            first: appearances.appearances[0] || '',
-            count: appearances.appearances.length
-          },
-          metaTags: guessData.metaTags,
-          sharedMetaTags: guessData.metaTags,
-          isAnswer: true
-        }]);
+        setGuesses(prevGuesses => [...prevGuesses, buildGuessEntry(true)]);
         handleGameEnd(true);
-      } else if (guessesLeft <= 1) {
-        setGuesses(prevGuesses => [...prevGuesses, {
-          id: guessData.id,
-          icon: guessData.image,
-          name: guessData.name,
-          nameCn: guessData.nameCn,
-          nameEn: guessData.nameEn,
-          gender: guessData.gender,
-          genderFeedback: feedback.gender.feedback,
-          latestAppearance: guessData.latestAppearance,
-          latestAppearanceFeedback: feedback.latestAppearance.feedback,
-          earliestAppearance: guessData.earliestAppearance,
-          earliestAppearanceFeedback: feedback.earliestAppearance.feedback,
-          highestRating: guessData.highestRating,
-          ratingFeedback: feedback.rating.feedback,
-          appearancesCount: guessData.appearances.length,
-          appearancesCountFeedback: feedback.appearancesCount.feedback,
-          popularity: guessData.popularity,
-          popularityFeedback: feedback.popularity.feedback,
-          appearanceIds: guessData.appearanceIds,
-          sharedAppearances: feedback.shared_appearances,
-          metaTags: feedback.metaTags.guess,
-          sharedMetaTags: feedback.metaTags.shared,
-          isAnswer: false
-        }]);
+      } else if (isLastGuess) {
+        setGuesses(prevGuesses => [...prevGuesses, buildGuessEntry(false)]);
         handleGameEnd(false);
       } else {
-        setGuesses(prevGuesses => [...prevGuesses, {
-          id: guessData.id,
-          icon: guessData.image,
-          name: guessData.name,
-          nameCn: guessData.nameCn,
-          nameEn: guessData.nameEn,
-          gender: guessData.gender,
-          genderFeedback: feedback.gender.feedback,
-          latestAppearance: guessData.latestAppearance,
-          latestAppearanceFeedback: feedback.latestAppearance.feedback,
-          earliestAppearance: guessData.earliestAppearance,
-          earliestAppearanceFeedback: feedback.earliestAppearance.feedback,
-          highestRating: guessData.highestRating,
-          ratingFeedback: feedback.rating.feedback,
-          appearancesCount: guessData.appearances.length,
-          appearancesCountFeedback: feedback.appearancesCount.feedback,
-          popularity: guessData.popularity,
-          popularityFeedback: feedback.popularity.feedback,
-          appearanceIds: guessData.appearanceIds,
-          sharedAppearances: feedback.shared_appearances,
-          metaTags: feedback.metaTags.guess,
-          sharedMetaTags: feedback.metaTags.shared,
-          isAnswer: false
-        }]);
+        setGuesses(prevGuesses => [...prevGuesses, buildGuessEntry(false)]);
       }
     } catch (error) {
       console.error('Error processing guess:', error);
-      alert('出错了，请重试');
+      alert('???????');
     } finally {
       setIsGuessing(false);
       setShouldResetTimer(false);
@@ -717,6 +671,10 @@ const Multiplayer = () => {
     // Emit to server for sync
     socketRef.current.emit('updatePlayerTeam', { roomId, team: newTeam || null });
   };
+
+  const maxHistoryLength = guessesHistory.length > 0
+    ? Math.max(...guessesHistory.map(g => g.guesses?.length || 0))
+    : 0;
 
   if (!roomId) {
     return <div>Loading...</div>;
@@ -938,19 +896,22 @@ const Multiplayer = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {Array.from({ length: Math.max(...guessesHistory.map(g => g.guesses.length)) }).map((_, rowIndex) => (
+                          {Array.from({ length: maxHistoryLength }).map((_, rowIndex) => (
                             <tr key={rowIndex}>
-                              {guessesHistory.map(playerGuesses => (
-                                <td key={playerGuesses.username}>
-                                  {playerGuesses.guesses[rowIndex] && (
-                                    <>
-                                      <img className="character-icon" src={playerGuesses.guesses[rowIndex].guessData.image} alt={playerGuesses.guesses[rowIndex].guessData.name} />
-                                      <div className="character-name">{playerGuesses.guesses[rowIndex].guessData.name}</div>
-                                      <div className="character-name-cn">{playerGuesses.guesses[rowIndex].guessData.nameCn}</div>
-                                    </>
-                                  )}
-                                </td>
-                              ))}
+                              {guessesHistory.map(playerGuesses => {
+                                const guessEntry = playerGuesses.guesses?.[rowIndex];
+                                return (
+                                  <td key={playerGuesses.username}>
+                                    {guessEntry && guessEntry.guessData && (
+                                      <>
+                                        <img className="character-icon" src={guessEntry.guessData.image} alt={guessEntry.guessData.name} />
+                                        <div className="character-name">{guessEntry.guessData.name}</div>
+                                        <div className="character-name-cn">{guessEntry.guessData.nameCn}</div>
+                                      </>
+                                    )}
+                                  </td>
+                                );
+                              })}
                             </tr>
                           ))}
                         </tbody>
@@ -1036,19 +997,22 @@ const Multiplayer = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {Array.from({ length: Math.max(...guessesHistory.map(g => g.guesses.length)) }).map((_, rowIndex) => (
+                      {Array.from({ length: maxHistoryLength }).map((_, rowIndex) => (
                         <tr key={rowIndex}>
-                          {guessesHistory.map(playerGuesses => (
-                            <td key={playerGuesses.username}>
-                              {playerGuesses.guesses[rowIndex] && (
-                                <>
-                                  <img className="character-icon" src={playerGuesses.guesses[rowIndex].guessData.image} alt={playerGuesses.guesses[rowIndex].guessData.name} />
-                                  <div className="character-name">{playerGuesses.guesses[rowIndex].guessData.name}</div>
-                                  <div className="character-name-cn">{playerGuesses.guesses[rowIndex].guessData.nameCn}</div>
-                                </>
-                              )}
-                            </td>
-                          ))}
+                          {guessesHistory.map(playerGuesses => {
+                            const guessEntry = playerGuesses.guesses?.[rowIndex];
+                            return (
+                              <td key={playerGuesses.username}>
+                                {guessEntry && guessEntry.guessData && (
+                                  <>
+                                    <img className="character-icon" src={guessEntry.guessData.image} alt={guessEntry.guessData.name} />
+                                    <div className="character-name">{guessEntry.guessData.name}</div>
+                                    <div className="character-name-cn">{guessEntry.guessData.nameCn}</div>
+                                  </>
+                                )}
+                              </td>
+                            );
+                          })}
                         </tr>
                       ))}
                     </tbody>

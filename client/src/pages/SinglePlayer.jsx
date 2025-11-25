@@ -74,6 +74,7 @@ function SinglePlayer() {
         setCurrentGameSettings({ ...gameSettings });
         if (isMounted) {
           setAnswerCharacter(character);
+          console.log('[DEBUG] 单人答案:', character.nameCn || character.name, `(id: ${character.id})`);
           setGuessesLeft(gameSettings.maxAttempts);
           // Prepare hints based on settings
           let hintTexts = [];
@@ -209,6 +210,7 @@ function SinglePlayer() {
       setCurrentGameSettings({ ...gameSettings });
       const character = await getRandomCharacter(gameSettings);
       setAnswerCharacter(character);
+      console.log('[DEBUG] 单人答案:', character.nameCn || character.name, `(id: ${character.id})`);
       // Prepare hints based on settings for new game
       let hintTexts = [];
       if (Array.isArray(gameSettings.useHints) && gameSettings.useHints.length > 0 && character.summary) {
