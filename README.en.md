@@ -1,61 +1,44 @@
 [中文](README.md) | [English](README.en.md)
 
 ## 📖 Overview
-Anime Character Guessr — have some fun guessing anime characters!
+- Touhou-themed rework of Anime Character Guessr, for entertainment only; no commercial use.
+- Inspired by [BLAST.tv](https://blast.tv/counter-strike); data comes from [Bangumi](https://bgm.tv/) plus localization/enrichment from the Touhou community—big thanks to the Touhou friends who shared it.
+- Best experienced on a desktop browser.
 
-- A game where you guess anime characters. Best experienced on a desktop browser.
-- Inspired by [BLAST.tv](https://blast.tv/counter-strike), data sourced from [Bangumi](https://bgm.tv/).
-- We have a [Translation Project](https://github.com/vertiKarl/anime-character-guessr-english) by vertiKarl: [Weblink](https://vertikarl.github.io/anime-character-guessr-english)
+## 📦 Run
 
-## 📦 How to Run
-
-### 1. Run locally with npm
-
-In both the `client` and `server` directories, run:
+### 1) Local npm
+Run in both `client` and `server`:
 ```bash
 npm install
 npm run dev
 ```
 
-### 2. Run with Docker
-
-Create an `.env` file in the project root:
+### 2) Docker
+Create `.env` in project root:
 ```env
 DOMAIN_NAME=http://[your IP]
-
 MONGODB_URI=mongodb://mongo:27017/tags
-
 CLIENT_INTERNAL_PORT=80
 SERVER_INTERNAL_PORT=3000
 NGINX_EXTERNAL_PORT=80
-
 AES_SECRET=YourSuperSecretKeyChangeMe
-
 SERVER_URL=http://[your IP]:3000
 ```
-
-Start everything using the provided `docker-compose` file:
+Start:
 ```bash
 docker-compose up --build
 ```
-
-Tear down containers:
+Stop and remove:
 ```bash
 docker-compose down
 ```
 
 ## 🎮 How to Play
+- Search and guess the hidden character; each guess returns feedback.
+- Green: correct or very close; Yellow: somewhat close.
+- “↑” guess higher; “↓” guess lower.
 
-- Guess a hidden anime character. Search for a character and make a guess.
-- After each guess, you’ll get information about the character you guessed.
-- Green highlight: correct or very close; Yellow highlight: somewhat close.
-- "↑": guess higher; "↓": guess lower.
-
-## ✨ Contributing Tags
-
-- Please note when submitting PRs for external tags!
-- Place assets in organized folders under `client/public/assets`.
-- Put tag data into `client/public/data/extra_tags`. The maintainer will review and import.
-- New tags not loading locally? Ensure the entry IDs are added to `./client/data/extra_tag_subjects.js`.
-
-
+## 🙏 Thanks
+- Thanks to the Touhou community friends for providing localization and data support.
+- Thanks to the original project and all contributors.

@@ -1,58 +1,44 @@
 [中文](README.md) | [English](README.en.md)
 
 ## 📖 简介
-二次元笑传之猜猜呗，快来弗/灯一把吧！
+- 东方主题的二次开发版 Anime Character Guessr，仅供娱乐使用，不用于商业化。
+- 灵感来源 [BLAST.tv](https://blast.tv/counter-strikle)，数据基于 [Bangumi](https://bgm.tv/) 以及东方社区的补充，本地化数据特别感谢东方群友提供。
+- 推荐使用桌面端浏览器游玩。
 
-- 一个猜动漫角色的游戏, 建议使用桌面端浏览器游玩。
-- 灵感来源 [BLAST.tv](https://blast.tv/counter-strikle), 数据来源 [Bangumi](https://bgm.tv/)。
-- 游玩群：467740403
-- 开发交流群：894333602
+## 📦 运行
 
-## 📦 运行教程
-
-### 1. 本地 npm 运行
-
-分别在 `client` 和 `server` 目录下执行以下命令：
-```
+### 1) 本地 npm
+分别在 `client` 和 `server` 目录执行：
+```bash
 npm install
 npm run dev
 ```
 
-### 2. docker 运行
-
-在根目录下新建env文件
+### 2) Docker
+在项目根目录新建 `.env`：
 ```env
 DOMAIN_NAME=http://[你的 IP]
-
 MONGODB_URI=mongodb://mongo:27017/tags
-
 CLIENT_INTERNAL_PORT=80
 SERVER_INTERNAL_PORT=3000
 NGINX_EXTERNAL_PORT=80
-
 AES_SECRET=YourSuperSecretKeyChangeMe
-
 SERVER_URL=http://[你的 IP]:3000
 ```
-使用项目中的 `docker-compose` 文件一键运行：
-```
+一键启动：
+```bash
 docker-compose up --build
 ```
-删除容器：
-```
+停止并删除容器：
+```bash
 docker-compose down
 ```
 
 ## 🎮 游戏玩法
+- 搜索并猜测神秘角色，每次猜测后会获得反馈提示。
+- 绿色：正确或非常接近；黄色：有些接近。
+- “↑” 往高猜；“↓” 往低猜。
 
-- 猜一个神秘动漫角色。搜索角色，然后做出猜测。
-- 每次猜测后，你会获得你猜的角色的信息。
-- 绿色高亮：正确或非常接近；黄色高亮：有点接近。
-- "↑"：应该往高了猜；"↓"：应该往低了猜
-
-## ✨ 贡献标签
-
-- 提交外部标签PR的时候请注意！
-- 素材文件分好文件夹，放到client/public/assets下。
-- 标签数据可以直接放到client/public/data/extra_tags下，作者会看一下再导入。
-- 本地测试新标签加载不出来？看一看有没有把条目ID放进./client/data的extra_tag_subjects.js里。
+## 🙏 鸣谢
+- 感谢东方群友提供的本地化与数据支持。
+- 感谢原项目及所有贡献者的工作。 
