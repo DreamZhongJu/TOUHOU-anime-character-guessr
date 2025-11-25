@@ -194,6 +194,7 @@ async function getCharacterAppearances(characterId, gameSettings) {
     const metaTagCounts = new Map(); // Track cumulative counts for each meta tag
     const allMetaTags = new Set();
     const rawTags = new Map();
+    const networkTagsSet = new Set();
 
     // Get just the names and collect meta tags
     const appearances = await Promise.all(
@@ -228,6 +229,7 @@ async function getCharacterAppearances(characterId, gameSettings) {
               }
               else{
                 rawTags.set(tag.name, (rawTags.get(tag.name) || 0) + stuffFactor*tag.count);
+                networkTagsSet.add(tag.name);
               }
             });
           }
@@ -241,9 +243,10 @@ async function getCharacterAppearances(characterId, gameSettings) {
               }
               else {
                 metaTagCounts.set(tag, (metaTagCounts.get(tag) || 0) + (tagCounts.get(tag) || stuffFactor));
+                networkTagsSet.add(tag);
               }
             });
-  
+
             details.tags.forEach(tagObj => {
               const [[name, count]] = Object.entries(tagObj);
               if (sourceTagSet.has(name)) {
@@ -261,6 +264,7 @@ async function getCharacterAppearances(characterId, gameSettings) {
               }
               else {
                 tagCounts.set(name, (tagCounts.get(name) || 0) + count*stuffFactor);
+                networkTagsSet.add(name);
               }
             });
           }
@@ -282,6 +286,7 @@ async function getCharacterAppearances(characterId, gameSettings) {
     let sortedSourceTags;
     let sortedTags;
     let sortedMetaTags;
+    let networkTags = [];
     if (gameSettings.commonTags){
       sortedSourceTags = Array.from(sourceTagCounts.entries())
         .map(([name, count]) => ({ [name]: count }))
@@ -295,6 +300,7 @@ async function getCharacterAppearances(characterId, gameSettings) {
       const threshold = maxCount * 0.1;
       let cutoffIndex = sortedEntries.findIndex(entry => entry[1] < threshold);
       sortedRawTags = new Map(sortedEntries.slice(0, Math.max(cutoffIndex, gameSettings.subjectTagNum)));
+      networkTags = Array.from(sortedRawTags.keys());
     }
     else{
       sortedSourceTags = Array.from(sourceTagCounts.entries())
@@ -325,6 +331,8 @@ async function getCharacterAppearances(characterId, gameSettings) {
         idToTags[characterId].slice(0, Math.min(gameSettings.characterTagNum, idToTags[characterId].length)).forEach(tag => allMetaTags.add(tag));
       }
       regionTags.forEach(tag => allMetaTags.add(tag));
+      // 网络标签仅包含远程返回的 tags/meta_tags
+      networkTags = Array.from(networkTagsSet);
     }
 
     const appearanceNames = [];
@@ -359,7 +367,8 @@ async function getCharacterAppearances(characterId, gameSettings) {
       highestRating,
       rawTags: sortedRawTags || new Map(),
       animeVAs: Array.from(animeVAs),
-      metaTags: Array.from(allMetaTags)
+      metaTags: Array.from(allMetaTags),
+      networkTags
     };
   } catch (error) {
     console.error('Error fetching character appearances:', error);
@@ -371,7 +380,8 @@ async function getCharacterAppearances(characterId, gameSettings) {
       highestRating: -1,
       rawTags: new Map(),
       animeVAs: [],
-      metaTags: []
+      metaTags: [],
+      networkTags: []
     };
   }
 }

@@ -12,7 +12,9 @@ const ATTRIBUTE_COLUMNS = [
 
 const SPLIT_REGEX = /[\/、，,]+/;
 
-function GuessesTable({ guesses }) {
+function GuessesTable({ guesses, answerCharacter }) {
+  const answerNetworkTags = Array.isArray(answerCharacter?.networkTags) ? new Set(answerCharacter.networkTags) : new Set();
+
   const buildAttributeMap = (guess) => {
     const map = {};
     (guess.touhouAttributes || []).forEach(attr => {
@@ -55,6 +57,7 @@ function GuessesTable({ guesses }) {
             {ATTRIBUTE_COLUMNS.map(column => (
               <th key={column.label}>{column.label}</th>
             ))}
+            <th>网络标签</th>
             <th>出场作品（二者中一个则变绿）</th>
           </tr>
         </thead>
@@ -62,6 +65,8 @@ function GuessesTable({ guesses }) {
           {guesses.map((guess, guessIndex) => {
             const attrMap = buildAttributeMap(guess);
             const workTokens = (guess.touhouWorks || []).map(work => work.value).filter(v => v && v !== '未知');
+            const netTags = Array.isArray(guess.networkTags) ? guess.networkTags.filter(Boolean) : [];
+            const hasSharedNetTag = netTags.some(tag => answerNetworkTags.has(tag));
             return (
               <tr key={guessIndex}>
                 <td>
@@ -94,6 +99,19 @@ function GuessesTable({ guesses }) {
                     </td>
                   );
                 })}
+                <td>
+                  <div className={`attribute-cell ${hasSharedNetTag ? 'match' : ''}`}>
+                    {netTags.length > 0 ? (
+                      netTags.map((tag, idx) => (
+                        <span key={`${tag}-${idx}`} className="attribute-token">
+                          {tag}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="attribute-token unknown">未知</span>
+                    )}
+                  </div>
+                </td>
                 <td>
                   <div className="work-info">
                     <div className="shared-work-tag">

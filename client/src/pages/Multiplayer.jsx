@@ -120,6 +120,9 @@ const Multiplayer = () => {
       const decryptedCharacter = JSON.parse(CryptoJS.AES.decrypt(character, secret).toString(CryptoJS.enc.Utf8));
       decryptedCharacter.rawTags = new Map(decryptedCharacter.rawTags || []);
       const enrichedCharacter = enrichWithTouhouData(decryptedCharacter);
+      if (!enrichedCharacter.networkTags && enrichedCharacter.rawTags) {
+        enrichedCharacter.networkTags = Array.from(enrichedCharacter.rawTags.keys());
+      }
       setAnswerCharacter(enrichedCharacter);
       answerCharacterRef.current = enrichedCharacter;
       console.log('[DEBUG] 多人答案:', enrichedCharacter.nameCn || enrichedCharacter.name, `(id: ${enrichedCharacter.id})`);
@@ -251,6 +254,10 @@ const Multiplayer = () => {
         rawTags: guessData.rawTags || new Map()
       });
 
+      if (!enrichedGuess.networkTags && enrichedGuess.rawTags instanceof Map) {
+        enrichedGuess.networkTags = Array.from(enrichedGuess.rawTags.keys());
+      }
+
       const feedback = generateFeedback(enrichedGuess, answerCharacterRef.current);
 
       const newGuess = {
@@ -261,7 +268,8 @@ const Multiplayer = () => {
         nameEn: enrichedGuess.nameEn,
         gender: enrichedGuess.gender,
         genderFeedback: enrichedGuess.gender === answerCharacterRef.current?.gender ? 'yes' : 'no',
-        metaTags: feedback.metaTags.guess,
+        metaTags: Array.isArray(enrichedGuess.metaTags) ? enrichedGuess.metaTags : [],
+        networkTags: Array.isArray(enrichedGuess.networkTags) ? enrichedGuess.networkTags : [],
         sharedMetaTags: feedback.metaTags.shared,
         sharedAppearances: feedback.shared_appearances,
         touhouAttributes: feedback.touhouAttributes,
@@ -410,6 +418,9 @@ const Multiplayer = () => {
         ...appearances,
         rawTags: rawTagsMap
       });
+      if (!enrichedGuessData.networkTags && rawTagsMap instanceof Map) {
+        enrichedGuessData.networkTags = Array.from(rawTagsMap.keys());
+      }
 
       const isCorrect = enrichedGuessData.id === answerCharacter.id;
       const feedback = generateFeedback(enrichedGuessData, answerCharacter);
@@ -443,7 +454,8 @@ const Multiplayer = () => {
         nameEn: enrichedGuessData.nameEn,
         gender: enrichedGuessData.gender,
         genderFeedback: enrichedGuessData.gender === answerCharacter.gender ? 'yes' : 'no',
-        metaTags: feedback.metaTags.guess,
+        metaTags: Array.isArray(enrichedGuessData.metaTags) ? enrichedGuessData.metaTags : [],
+        networkTags: Array.isArray(enrichedGuessData.networkTags) ? enrichedGuessData.networkTags : [],
         sharedMetaTags: feedback.metaTags.shared,
         sharedAppearances: feedback.shared_appearances,
         touhouAttributes: feedback.touhouAttributes,
