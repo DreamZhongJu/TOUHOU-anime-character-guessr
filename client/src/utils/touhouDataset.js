@@ -1,4 +1,4 @@
-﻿import touhouCharacters from '../data/touhouCharacters.json';
+import touhouCharacters from '../data/touhouCharacters.json';
 
 const ATTRIBUTE_DEFINITIONS = [
   { key: '种族', label: '种族' },
@@ -14,8 +14,8 @@ const ATTRIBUTE_DEFINITIONS = [
 const TAG_KEYS = ['性格1', '性格2', '身材', '足着', '出场作品1', '出场作品2'];
 
 const WORK_DEFINITIONS = [
-  { key: '出场作品1', label: '初登场' },
-  { key: '出场作品2', label: '代表作' }
+  { key: '出场作品1', label: '出场作品1' },
+  { key: '出场作品2', label: '出场作品2' }
 ];
 
 const touhouMap = new Map();
@@ -28,12 +28,11 @@ touhouCharacters.forEach(entry => {
 });
 
 function normalizeName(name) {
+  if (!name) return '';
   return name
-    ? name
-        .replace(/[`'"·•・．\.\s]/g, '')
-        .replace(/[（）()]/g, '')
-        .toLowerCase()
-    : '';
+    .replace(/[`'"·・.\s]/g, '')
+    .replace(/[（）()]/g, '')
+    .toLowerCase();
 }
 
 function findTouhouProfileByName(name) {
@@ -80,20 +79,19 @@ function getTouhouAttributes(profile) {
 }
 
 function getTouhouWorks(profile) {
-  return WORK_DEFINITIONS
-    .filter(def => def.label && def.label !== '代表作')
-    .map(def => ({
-      key: def.key,
-      label: def.label,
-      value: profile ? profile[def.key] || '未知' : '未知'
-    }));
+  return WORK_DEFINITIONS.map(def => ({
+    key: def.key,
+    label: def.label,
+    value: profile ? profile[def.key] || '未知' : '未知'
+  }));
 }
 
 function getSharedWorks(guessProfile, answerProfile) {
   if (!guessProfile || !answerProfile) {
     return {
       first: '',
-      count: 0
+      count: 0,
+      list: []
     };
   }
 
@@ -108,7 +106,8 @@ function getSharedWorks(guessProfile, answerProfile) {
 
   return {
     first: sharedWorks[0] || '',
-    count: sharedWorks.length
+    count: sharedWorks.length,
+    list: sharedWorks
   };
 }
 

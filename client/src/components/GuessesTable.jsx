@@ -1,4 +1,4 @@
-﻿import '../styles/GuessesTable.css';
+import '../styles/GuessesTable.css';
 
 const ATTRIBUTE_COLUMNS = [
   { label: '种族', keys: ['种族'] },
@@ -16,7 +16,7 @@ function GuessesTable({ guesses }) {
   const buildAttributeMap = (guess) => {
     const map = {};
     (guess.touhouAttributes || []).forEach(attr => {
-      map[attr.label] = attr;
+      map[attr.key] = attr;
     });
     return map;
   };
@@ -51,16 +51,17 @@ function GuessesTable({ guesses }) {
         <thead>
           <tr>
             <th></th>
-            <th>名字</th>
+            <th>角色</th>
             {ATTRIBUTE_COLUMNS.map(column => (
               <th key={column.label}>{column.label}</th>
             ))}
-            <th>共同作品</th>
+            <th>出场作品（部分）</th>
           </tr>
         </thead>
         <tbody>
           {guesses.map((guess, guessIndex) => {
             const attrMap = buildAttributeMap(guess);
+            const workTokens = (guess.touhouWorks || []).map(work => work.value).filter(v => v && v !== '未知');
             return (
               <tr key={guessIndex}>
                 <td>
@@ -69,7 +70,7 @@ function GuessesTable({ guesses }) {
                 <td>
                   <div className={`character-name-container ${guess.isAnswer ? 'correct' : ''}`}>
                     {guess.guessrName && (
-                      <div className="character-guessr-name" style={{ fontSize: '12px', color: '#888' }}>来自：{guess.guessrName}</div>
+                      <div className="character-guessr-name" style={{ fontSize: '12px', color: '#888' }}>猜测者：{guess.guessrName}</div>
                     )}
                     <div className="character-name">{guess.name}</div>
                     <div className="character-name-cn">{guess.nameCn}</div>
@@ -95,22 +96,18 @@ function GuessesTable({ guesses }) {
                 })}
                 <td>
                   <div className="work-info">
-                    {guess.sharedAppearances && guess.sharedAppearances.count > 0 && (
-                      <div className="shared-work-tag">
-                        <div className="attribute-cell match">
-                          <span className="attribute-token">
-                            {guess.sharedAppearances.first}
-                            {guess.sharedAppearances.count > 1 && ` +${guess.sharedAppearances.count - 1}`}
-                          </span>
-                        </div>
+                    <div className="shared-work-tag">
+                      <div className="attribute-cell match">
+                        {workTokens.length > 0 ? (
+                          workTokens.map((work, idx) => (
+                            <span key={`${work}-${idx}`} className="attribute-token">
+                              {work}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="attribute-token unknown">未知</span>
+                        )}
                       </div>
-                    )}
-                    <div className="work-list">
-                      {(guess.touhouWorks || []).map(work => (
-                        <div key={work.key} className="work-entry">
-                          {work.label}：{work.value || '未知'}
-                        </div>
-                      ))}
                     </div>
                   </div>
                 </td>
