@@ -80,11 +80,13 @@ function getTouhouAttributes(profile) {
 }
 
 function getTouhouWorks(profile) {
-  return WORK_DEFINITIONS.map(def => ({
-    key: def.key,
-    label: def.label,
-    value: profile ? profile[def.key] || '未知' : '未知'
-  }));
+  return WORK_DEFINITIONS
+    .filter(def => def.label && def.label !== '代表作')
+    .map(def => ({
+      key: def.key,
+      label: def.label,
+      value: profile ? profile[def.key] || '未知' : '未知'
+    }));
 }
 
 function getSharedWorks(guessProfile, answerProfile) {
