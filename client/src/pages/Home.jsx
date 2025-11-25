@@ -1,8 +1,6 @@
 ﻿import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import '../styles/Home.css';
-import UpdateAnnouncement from '../components/UpdateAnnouncement';
-import announcements from '../data/announcements';
 
 const Home = () => {
   const [roomCount, setRoomCount] = useState(0);
@@ -27,12 +25,6 @@ const Home = () => {
           <small>当前活跃结界：{roomCount}</small>
         </Link>
       </div>
-
-      <UpdateAnnouncement
-        announcements={announcements}
-        defaultExpanded={false}
-        initialVisibleCount={1}
-      />
 
       <div className="home-footer">
         <p>

@@ -29,7 +29,7 @@ function SinglePlayer() {
   const [imgHint, setImgHint] = useState(null);
   const [useImageHint, setUseImageHint] = useState(0);
   const [gameSettings, setGameSettings] = useLocalStorage('singleplayer-game-settings', {
-    startYear: new Date().getFullYear()-10,
+    startYear: new Date().getFullYear() - 10,
     endYear: new Date().getFullYear(),
     useSubjectPerYear: false,
     topNSubjects: 50,
@@ -79,7 +79,7 @@ function SinglePlayer() {
           // Prepare hints based on settings
           let hintTexts = [];
           if (Array.isArray(gameSettings.useHints) && gameSettings.useHints.length > 0 && character.summary) {
-            const sentences = character.summary.replace('[mask]', '').replace('[/mask]','')
+            const sentences = character.summary.replace('[mask]', '').replace('[/mask]', '')
               .split(/[。、，。！？ ""]/).filter(s => s.trim());
             if (sentences.length > 0) {
               // Randomly select as many hints as needed
@@ -87,7 +87,7 @@ function SinglePlayer() {
               while (selectedIndices.size < Math.min(gameSettings.useHints.length, sentences.length)) {
                 selectedIndices.add(Math.floor(Math.random() * sentences.length));
               }
-              hintTexts = Array.from(selectedIndices).map(i => "……"+sentences[i].trim()+"……");
+              hintTexts = Array.from(selectedIndices).map(i => "……" + sentences[i].trim() + "……");
             }
           }
           setHints(hintTexts);
@@ -152,7 +152,7 @@ function SinglePlayer() {
         setGuesses(prevGuesses => [...prevGuesses, buildGuessEntry(true)]);
 
         setGameEnd(true);
-        alert('????????????????');
+        alert('恭喜你，猜对了！');
         setGameEndPopup({
           result: 'win',
           answer: answerCharacter
@@ -171,7 +171,7 @@ function SinglePlayer() {
       }
     } catch (error) {
       console.error('Error processing guess:', error);
-      alert('???????');
+      alert('Error processing guess');
     } finally {
       setIsGuessing(false);
       setShouldResetTimer(false);
@@ -214,14 +214,14 @@ function SinglePlayer() {
       // Prepare hints based on settings for new game
       let hintTexts = [];
       if (Array.isArray(gameSettings.useHints) && gameSettings.useHints.length > 0 && character.summary) {
-        const sentences = character.summary.replace('[mask]', '').replace('[/mask]','')
+        const sentences = character.summary.replace('[mask]', '').replace('[/mask]', '')
           .split(/[。、，。！？ ""]/).filter(s => s.trim());
         if (sentences.length > 0) {
           const selectedIndices = new Set();
           while (selectedIndices.size < Math.min(gameSettings.useHints.length, sentences.length)) {
             selectedIndices.add(Math.floor(Math.random() * sentences.length));
           }
-          hintTexts = Array.from(selectedIndices).map(i => "……"+sentences[i].trim()+"……");
+          hintTexts = Array.from(selectedIndices).map(i => "……" + sentences[i].trim() + "……");
         }
       }
       setHints(hintTexts);
@@ -303,7 +303,7 @@ function SinglePlayer() {
         finishInit={finishInit}
         hints={hints}
         useImageHint={useImageHint}
-        imgHint = {imgHint}
+        imgHint={imgHint}
         useHints={currentGameSettings.useHints}
         onSurrender={handleSurrender}
       />
