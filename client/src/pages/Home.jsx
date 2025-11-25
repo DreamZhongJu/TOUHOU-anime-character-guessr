@@ -45,7 +45,7 @@ const Home = () => {
           想快速了解玩法？可以观看
           <a href="https://www.bilibili.com/video/BV14CVRzUELs"> 介绍视频 </a>，
           灵感来源于 <a href="https://blast.tv/counter-strikle"> BLAST.tv </a> 的竞猜活动，
-          数据基于 <a href="https://bgm.tv/"> Bangumi </a> 与东方友人整合。
+          数据基于 <a href="https://bgm.tv/"> Bangumi </a> 与东方群友整合。
           <br />
           特别感谢 <a href="https://space.bilibili.com/87983557">@作者</a>、
           <a href="https://github.com/trim21"> Bangumi 管理员</a>、
