@@ -127,6 +127,9 @@ function SinglePlayer() {
         ...character,
         ...appearances
       });
+      if (!guessData.networkTags && appearances.rawTags instanceof Map) {
+        guessData.networkTags = Array.from(appearances.rawTags.keys());
+      }
 
       const isCorrect = guessData.id === answerCharacter.id;
       const feedback = generateFeedback(guessData, answerCharacter, currentGameSettings);
@@ -140,7 +143,8 @@ function SinglePlayer() {
         nameEn: guessData.nameEn,
         gender: guessData.gender,
         genderFeedback: guessData.gender === answerCharacter.gender ? 'yes' : 'no',
-        metaTags: feedback.metaTags.guess,
+        metaTags: Array.isArray(guessData.metaTags) ? guessData.metaTags : [],
+        networkTags: Array.isArray(guessData.networkTags) ? guessData.networkTags : [],
         sharedMetaTags: feedback.metaTags.shared,
         sharedAppearances: feedback.shared_appearances,
         touhouAttributes: feedback.touhouAttributes,
@@ -310,6 +314,7 @@ function SinglePlayer() {
 
       <GuessesTable
         guesses={guesses}
+        answerCharacter={answerCharacter}
       />
 
       {settingsPopup && (
