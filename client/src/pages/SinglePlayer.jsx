@@ -12,6 +12,7 @@ import '../styles/game.css';
 import '../styles/SinglePlayer.css';
 import axios from 'axios';
 import { useLocalStorage } from 'usehooks-ts';
+import { enrichWithTouhouData } from '../utils/touhouDataset';
 
 function SinglePlayer() {
   const [guesses, setGuesses] = useState([]);
@@ -115,118 +116,61 @@ function SinglePlayer() {
     setIsGuessing(true);
     setShouldResetTimer(true);
     if (character.id === 56822 || character.id === 56823) {
-      alert('有点意思');
+      alert('????');
     }
 
     try {
       const appearances = await getCharacterAppearances(character.id, currentGameSettings);
 
-      const guessData = {
+      const guessData = enrichWithTouhouData({
         ...character,
         ...appearances
-      };
+      });
 
       const isCorrect = guessData.id === answerCharacter.id;
+      const feedback = generateFeedback(guessData, answerCharacter, currentGameSettings);
       setGuessesLeft(prev => prev - 1);
 
+      const buildGuessEntry = (isAnswerFlag) => ({
+        id: guessData.id,
+        icon: guessData.image,
+        name: guessData.name,
+        nameCn: guessData.nameCn,
+        nameEn: guessData.nameEn,
+        gender: guessData.gender,
+        genderFeedback: guessData.gender === answerCharacter.gender ? 'yes' : 'no',
+        metaTags: feedback.metaTags.guess,
+        sharedMetaTags: feedback.metaTags.shared,
+        sharedAppearances: feedback.shared_appearances,
+        touhouAttributes: feedback.touhouAttributes,
+        touhouWorks: (feedback.touhouWorks?.guess) || guessData.touhouWorks || [],
+        isAnswer: isAnswerFlag
+      });
+
       if (isCorrect) {
-        setGuesses(prevGuesses => [...prevGuesses, {
-          id: guessData.id,
-          icon: guessData.image,
-          name: guessData.name,
-          nameCn: guessData.nameCn,
-          nameEn: guessData.nameEn,
-          gender: guessData.gender,
-          genderFeedback: 'yes',
-          latestAppearance: guessData.latestAppearance,
-          latestAppearanceFeedback: '=',
-          earliestAppearance: guessData.earliestAppearance,
-          earliestAppearanceFeedback: '=',
-          highestRating: guessData.highestRating,
-          ratingFeedback: '=',
-          appearancesCount: guessData.appearances.length,
-          appearancesCountFeedback: '=',
-          popularity: guessData.popularity,
-          popularityFeedback: '=',
-          appearanceIds: guessData.appearanceIds,
-          sharedAppearances: {
-            first: appearances.appearances[0] || '',
-            count: appearances.appearances.length
-          },
-          metaTags: guessData.metaTags,
-          sharedMetaTags: guessData.metaTags,
-          isAnswer: true
-        }]);
+        setGuesses(prevGuesses => [...prevGuesses, buildGuessEntry(true)]);
 
         setGameEnd(true);
-        alert('熟悉这个角色吗？欢迎贡献标签');
+        alert('????????????????');
         setGameEndPopup({
           result: 'win',
           answer: answerCharacter
         });
       } else if (guessesLeft <= 1) {
-        const feedback = generateFeedback(guessData, answerCharacter, currentGameSettings);
-        setGuesses(prevGuesses => [...prevGuesses, {
-          id: guessData.id,
-          icon: guessData.image,
-          name: guessData.name,
-          nameCn: guessData.nameCn,
-          nameEn: guessData.nameEn,
-          gender: guessData.gender,
-          genderFeedback: feedback.gender.feedback,
-          latestAppearance: guessData.latestAppearance,
-          latestAppearanceFeedback: feedback.latestAppearance.feedback,
-          earliestAppearance: guessData.earliestAppearance,
-          earliestAppearanceFeedback: feedback.earliestAppearance.feedback,
-          highestRating: guessData.highestRating,
-          ratingFeedback: feedback.rating.feedback,
-          appearancesCount: guessData.appearances.length,
-          appearancesCountFeedback: feedback.appearancesCount.feedback,
-          popularity: guessData.popularity,
-          popularityFeedback: feedback.popularity.feedback,
-          appearanceIds: guessData.appearanceIds,
-          sharedAppearances: feedback.shared_appearances,
-          metaTags: feedback.metaTags.guess,
-          sharedMetaTags: feedback.metaTags.shared,
-          isAnswer: false
-        }]);
+        setGuesses(prevGuesses => [...prevGuesses, buildGuessEntry(false)]);
 
         setGameEnd(true);
-        alert('认识这个角色吗？欢迎贡献标签');
+        alert('????????????????');
         setGameEndPopup({
           result: 'lose',
           answer: answerCharacter
         });
       } else {
-        const feedback = generateFeedback(guessData, answerCharacter, currentGameSettings);
-        setGuesses(prevGuesses => [...prevGuesses, {
-          id: guessData.id,
-          icon: guessData.image,
-          name: guessData.name,
-          nameCn: guessData.nameCn,
-          nameEn: guessData.nameEn,
-          gender: guessData.gender,
-          genderFeedback: feedback.gender.feedback,
-          latestAppearance: guessData.latestAppearance,
-          latestAppearanceFeedback: feedback.latestAppearance.feedback,
-          earliestAppearance: guessData.earliestAppearance,
-          earliestAppearanceFeedback: feedback.earliestAppearance.feedback,
-          highestRating: guessData.highestRating,
-          ratingFeedback: feedback.rating.feedback,
-          appearancesCount: guessData.appearances.length,
-          appearancesCountFeedback: feedback.appearancesCount.feedback,
-          popularity: guessData.popularity,
-          popularityFeedback: feedback.popularity.feedback,
-          appearanceIds: guessData.appearanceIds,
-          sharedAppearances: feedback.shared_appearances,
-          metaTags: feedback.metaTags.guess,
-          sharedMetaTags: feedback.metaTags.shared,
-          isAnswer: false
-        }]);
+        setGuesses(prevGuesses => [...prevGuesses, buildGuessEntry(false)]);
       }
     } catch (error) {
       console.error('Error processing guess:', error);
-      alert('出错了，请重试');
+      alert('???????');
     } finally {
       setIsGuessing(false);
       setShouldResetTimer(false);
@@ -364,8 +308,6 @@ function SinglePlayer() {
 
       <GuessesTable
         guesses={guesses}
-        gameSettings={currentGameSettings}
-        answerCharacter={answerCharacter}
       />
 
       {settingsPopup && (

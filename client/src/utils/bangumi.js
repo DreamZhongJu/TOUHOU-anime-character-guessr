@@ -1,6 +1,7 @@
 import axios from './cached-axios.js';
 import { idToTags } from '../data/id_tags.js';
 import { subjectsWithExtraTags } from '../data/extra_tag_subjects.js';
+import { ATTRIBUTE_DEFINITIONS, getSharedWorks, enrichWithTouhouData } from './touhouDataset.js';
 
 const API_BASE_URL = 'https://api.bgm.tv';
 
@@ -522,11 +523,11 @@ async function getRandomCharacter(gameSettings) {
     // Get character appearances
     const appearances = await getCharacterAppearances(selectedCharacter.id, gameSettings);
 
-    return {
+    return enrichWithTouhouData({
       ...selectedCharacter,
       ...characterDetails,
       ...appearances
-    };
+    });
   } catch (error) {
     console.error('Error getting random character:', error);
     throw error;
@@ -542,166 +543,50 @@ async function designateCharacter(characterId, gameSettings) {
     const appearances = await getCharacterAppearances(characterId, gameSettings);
     console.log(characterDetails);
 
-    return {
+    return enrichWithTouhouData({
       id: characterId,
       ...characterDetails,
       ...appearances
-    };
+    });
   } catch (error) {
     console.error('Error getting random character:', error);
     throw error;
   }
 }
 
-function generateFeedback(guess, answerCharacter, gameSettings) {
+function generateFeedback(guess, answerCharacter) {
   const result = {};
+  const guessProfile = guess.touhouProfile || null;
+  const answerProfile = answerCharacter.touhouProfile || null;
 
-  result.gender = {
-    guess: guess.gender,
-    feedback: guess.gender === answerCharacter.gender ? 'yes' : 'no'
+  const attributeFeedback = ATTRIBUTE_DEFINITIONS.map(def => {
+    const guessValue = guessProfile ? guessProfile[def.key] || '未知' : '未知';
+    const answerValue = answerProfile ? answerProfile[def.key] || '未知' : '未知';
+    return {
+      key: def.key,
+      label: def.label,
+      value: guessValue,
+      match: guessValue !== '未知' && answerValue !== '未知' && guessValue === answerValue
+    };
+  });
+
+  result.touhouAttributes = attributeFeedback;
+
+  const sharedAttributeTags = attributeFeedback
+    .filter(attr => attr.match && attr.value !== '未知')
+    .map(attr => `${attr.label}：${attr.value}`);
+
+  result.metaTags = {
+    guess: Array.isArray(guess.metaTags) ? guess.metaTags : [],
+    shared: sharedAttributeTags
   };
 
-  const popularityDiff = guess.popularity - answerCharacter.popularity;
-  const fivePercent = answerCharacter.popularity * 0.05;
-  const twentyPercent = answerCharacter.popularity * 0.2;
-  let popularityFeedback;
-  if (Math.abs(popularityDiff) <= fivePercent) {
-    popularityFeedback = '=';
-  } else if (popularityDiff > 0) {
-    popularityFeedback = popularityDiff <= twentyPercent ? '+' : '++';
-  } else {
-    popularityFeedback = popularityDiff >= -twentyPercent ? '-' : '--';
-  }
-  result.popularity = {
-    guess: guess.popularity,
-    feedback: popularityFeedback
+  result.shared_appearances = getSharedWorks(guessProfile, answerProfile);
+  result.touhouWorks = {
+    guess: guess.touhouWorks || [],
+    answer: answerCharacter.touhouWorks || []
   };
 
-  // Handle rating comparison
-  const ratingDiff = guess.highestRating - answerCharacter.highestRating;
-  let ratingFeedback;
-  if (guess.highestRating === -1 || answerCharacter.highestRating === -1) {
-    ratingFeedback = '?';
-  } else if (Math.abs(ratingDiff) <= 0.3) {
-    ratingFeedback = '=';
-  } else if (ratingDiff > 0) {
-    ratingFeedback = ratingDiff <= 1 ? '+' : '++';
-  } else {
-    ratingFeedback = ratingDiff >= -1 ? '-' : '--';
-  }
-  result.rating = {
-    guess: guess.highestRating,
-    feedback: ratingFeedback
-  };
-
-  const sharedAppearances = guess.appearances.filter(appearance => answerCharacter.appearances.includes(appearance));
-  result.shared_appearances = {
-    first: sharedAppearances[0] || '',
-    count: sharedAppearances.length
-  };
-
-  // Compare total number of appearances
-  const appearanceDiff = guess.appearances.length - answerCharacter.appearances.length;
-  let appearancesFeedback;
-  if (appearanceDiff === 0) {
-    appearancesFeedback = '=';
-  } else if (appearanceDiff > 0) {
-    appearancesFeedback = appearanceDiff <= 2 ? '+' : '++';
-  } else {
-    appearancesFeedback = appearanceDiff >= -2 ? '-' : '--';
-  }
-  result.appearancesCount = {
-    guess: guess.appearances.length,
-    feedback: appearancesFeedback
-  };
-
-  if (gameSettings.commonTags){
-    const guessSubjectTags = Array.from(guess.rawTags.keys());
-    const answerSubjectTags = Array.from(answerCharacter.rawTags.keys());
-    const answerSubjectTagsSet = new Set(answerSubjectTags);
-    const sharedSubjectTags = guessSubjectTags.filter(tag => answerSubjectTagsSet.has(tag)).slice(0, gameSettings.subjectTagNum);
-    const subjectTags = [...sharedSubjectTags];
-    for (const tag of guessSubjectTags) {
-      if (subjectTags.length >= gameSettings.subjectTagNum) break;
-      if (!answerSubjectTagsSet.has(tag)) {
-        subjectTags.push(tag);
-      }
-    }
-
-    const guessCharacterTags = idToTags && idToTags[guess.id]? idToTags[guess.id] : [];
-    const answerCharacterTags = idToTags && idToTags[answerCharacter.id]? idToTags[answerCharacter.id] : [];
-    const answerCharacterTagsSet = new Set(answerCharacterTags);
-    const sharedCharacterTags = guessCharacterTags.filter(tag => answerCharacterTagsSet.has(tag)).slice(0, gameSettings.characterTagNum);
-    const characterTags = [...sharedCharacterTags];
-    for (const tag of guessCharacterTags) {
-      if (characterTags.length >= gameSettings.characterTagNum) break;
-      if (!answerCharacterTagsSet.has(tag)) {
-        characterTags.push(tag);
-      }
-    }
-    const guessCVTags = guess.animeVAs? guess.animeVAs : [];
-    const answerCVTags = answerCharacter.animeVAs? answerCharacter.animeVAs : [];
-    const sharedCVTags = guessCVTags.filter(tag => answerCVTags.includes(tag));
-
-    const finalGuessTagsSet = new Set([...subjectTags, ...characterTags, ...guessCVTags]);
-    const finalSharedTagsSet = new Set([...sharedSubjectTags, ...sharedCharacterTags, ...sharedCVTags]);
-    result.metaTags = {
-      guess: Array.from(finalGuessTagsSet),
-      shared: Array.from(finalSharedTagsSet)
-    };
-  }
-  else{
-    // Advice from EST-NINE
-    const answerMetaTagsSet = new Set(answerCharacter.metaTags);
-    const sharedMetaTags = guess.metaTags.filter(tag => answerMetaTagsSet.has(tag));
-
-    result.metaTags = {
-      guess: guess.metaTags,
-      shared: sharedMetaTags
-    };
-  }
-
-  if (guess.latestAppearance === -1 || answerCharacter.latestAppearance === -1) {
-    result.latestAppearance = {
-      guess: guess.latestAppearance === -1 ? '?' : guess.latestAppearance,
-      feedback: guess.latestAppearance === -1 && answerCharacter.latestAppearance === -1 ? '=' : '?'
-    };
-  } else {
-    const yearDiff = guess.latestAppearance - answerCharacter.latestAppearance;
-    let yearFeedback;
-    if (yearDiff === 0) {
-      yearFeedback = '=';
-    } else if (yearDiff > 0) {
-      yearFeedback = yearDiff <= 2 ? '+' : '++';
-    } else {
-      yearFeedback = yearDiff >= -2 ? '-' : '--';
-    }
-    result.latestAppearance = {
-      guess: guess.latestAppearance,
-      feedback: yearFeedback
-    };
-  }
-
-  if (guess.earliestAppearance === -1 || answerCharacter.earliestAppearance === -1) {
-    result.earliestAppearance = {
-      guess: guess.earliestAppearance,
-      feedback: guess.earliestAppearance === -1 && answerCharacter.earliestAppearance === -1 ? '=' : '?'
-    };
-  } else {
-    const yearDiff = guess.earliestAppearance - answerCharacter.earliestAppearance;
-    let yearFeedback;
-    if (yearDiff === 0) {
-      yearFeedback = '=';
-    } else if (yearDiff > 0) {
-      yearFeedback = yearDiff <= 2 ? '+' : '++';
-    } else {
-      yearFeedback = yearDiff >= -2 ? '-' : '--';
-    }
-    result.earliestAppearance = {
-      guess: guess.earliestAppearance,
-      feedback: yearFeedback
-    };
-  }
   return result;
 }
 

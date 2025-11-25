@@ -1,182 +1,126 @@
-import '../styles/GuessesTable.css';
-import { useState } from 'react';
-import ModifiedTagDisplay from './ModifiedTagDisplay';
-import { subjectsWithExtraTags } from '../data/extra_tag_subjects';
+﻿import '../styles/GuessesTable.css';
 
-function GuessesTable({ guesses, gameSettings, answerCharacter }) {
-  const [clickedExpandTags, setClickedExpandTags] = useState(new Set());
-  const [externalTagMode, setExternalTagMode] = useState(false);
+const ATTRIBUTE_COLUMNS = [
+  { label: '种族', keys: ['种族'] },
+  { label: '发色', keys: ['发色'] },
+  { label: '发型', keys: ['发型'] },
+  { label: '瞳色', keys: ['瞳色'] },
+  { label: '性格', keys: ['性格1', '性格2'] },
+  { label: '身材', keys: ['身材'] },
+  { label: '足着', keys: ['足着'] }
+];
 
-  // Determine if any guess could have extra tags
-  const hasAnyExtraTags = guesses.some(guess =>
-    Array.isArray(guess.appearanceIds) && guess.appearanceIds.some(id => subjectsWithExtraTags.has(id))
-  );
+const SPLIT_REGEX = /[\/、，,]+/;
 
-  const getGenderEmoji = (gender) => {
-    switch (gender) {
-      case 'male':
-        return '♂️';
-      case 'female':
-        return '♀️';
-      default:
-        return '❓';
-    }
-  };
-
-  const handleExpandTagClick = (guessIndex, tagIndex) => {
-    const key = `${guessIndex}-${tagIndex}`;
-    setClickedExpandTags(prev => {
-      const newSet = new Set(prev);
-      newSet.add(key);
-      return newSet;
+function GuessesTable({ guesses }) {
+  const buildAttributeMap = (guess) => {
+    const map = {};
+    (guess.touhouAttributes || []).forEach(attr => {
+      map[attr.label] = attr;
     });
+    return map;
   };
 
-  const handleToggleMode = () => {
-    setExternalTagMode((prev) => !prev);
+  const splitValue = (value) => {
+    if (typeof value !== 'string') return [];
+    return value
+      .split(SPLIT_REGEX)
+      .map(part => part.trim())
+      .filter(Boolean);
+  };
+
+  const getAttributeDisplay = (attrMap, column) => {
+    const tokens = column.keys.flatMap(key => {
+      const attr = attrMap[key];
+      if (!attr || !attr.value || attr.value === '未知') {
+        return [];
+      }
+      return splitValue(attr.value);
+    });
+
+    const isMatch = column.keys.every(key => attrMap[key]?.match);
+    return {
+      tokens,
+      isMatch
+    };
   };
 
   return (
     <div className="table-container">
-      {/* Only show toggle if any guess could have extra tags */}
-      {hasAnyExtraTags && (
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
-          <button
-            onClick={handleToggleMode}
-            style={{
-              padding: '8px 24px',
-              borderRadius: '24px',
-              border: 'none',
-              background: externalTagMode ? '#4a90e2' : '#e0e0e0',
-              color: externalTagMode ? '#fff' : '#333',
-              fontWeight: 'bold',
-              fontSize: '16px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-              cursor: 'pointer',
-              transition: 'background 0.2s, color 0.2s',
-              outline: 'none',
-            }}
-            onMouseOver={e => {
-              e.target.style.background = externalTagMode ? '#006a91' : '#d0d0d0';
-            }}
-            onMouseOut={e => {
-              e.target.style.background = externalTagMode ? '#0084B4' : '#e0e0e0';
-            }}
-          >
-            更多标签
-          </button>
-        </div>
-      )}
-      <table className={`guesses-table${externalTagMode ? ' external-tag-mode' : ''}`}>
+      <table className="guesses-table">
         <thead>
           <tr>
             <th></th>
             <th>名字</th>
-            {externalTagMode ? (
-              <>
-                <th>性别？</th>
-                <th></th>
-              </>
-            ) : (
-              <>
-                <th>性别</th>
-                <th>热度</th>
-                <th>作品数<br/>最高分</th>
-                <th>最晚登场<br/>最早登场</th>
-              </>
-            )}
-            <th>标签</th>
-            <th>共同出演</th>
+            {ATTRIBUTE_COLUMNS.map(column => (
+              <th key={column.label}>{column.label}</th>
+            ))}
+            <th>共同作品</th>
           </tr>
         </thead>
         <tbody>
-          {guesses.map((guess, guessIndex) => (
-            <tr key={guessIndex}>
-              <td>
-                <img src={guess.icon} alt="character" className="character-icon" />
-              </td>
-              <td>
-                <div className={`character-name-container ${guess.isAnswer ? 'correct' : ''}`}>
-                  {guess.guessrName && (
-                    <div className="character-guessr-name" style={{ fontSize: '12px', color: '#888' }}>来自：{guess.guessrName}</div>
-                  )}
-                  <div className="character-name">{guess.name}</div>
-                  <div className="character-name-cn">{guess.nameCn}</div>
-                </div>
-              </td>
-              <td>
-                <span className={`feedback-cell ${guess.genderFeedback === 'yes' ? 'correct' : ''}`}>
-                  {getGenderEmoji(guess.gender)}
-                </span>
-              </td>
-              {externalTagMode ? (
+          {guesses.map((guess, guessIndex) => {
+            const attrMap = buildAttributeMap(guess);
+            return (
+              <tr key={guessIndex}>
                 <td>
-                  <ModifiedTagDisplay 
-                    guessCharacter={guess} 
-                    answerCharacter={answerCharacter}
-                  />
+                  <img src={guess.icon} alt="character" className="character-icon" />
                 </td>
-              ) : (
-                <>
-                  <td>
-                    <span className={`feedback-cell ${guess.popularityFeedback === '=' ? 'correct' : (guess.popularityFeedback === '+' || guess.popularityFeedback === '-') ? 'partial' : ''}`}>
-                      {guess.popularity}{(guess.popularityFeedback === '+' || guess.popularityFeedback === '++') ? ' ↓' : (guess.popularityFeedback === '-' || guess.popularityFeedback === '--') ? ' ↑' : ''}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="appearance-container">
-                      <div className={`feedback-cell appearance-count ${guess.appearancesCountFeedback === '=' ? 'correct' : (guess.appearancesCountFeedback === '+' || guess.appearancesCountFeedback === '-') ? 'partial' : guess.appearancesCountFeedback === '?' ? 'unknown' : ''}`}>
-                        {guess.appearancesCount}{(guess.appearancesCountFeedback === '+' || guess.appearancesCountFeedback === '++') ? ' ↓' : (guess.appearancesCountFeedback === '-' || guess.appearancesCountFeedback === '--') ? ' ↑' : ''}
+                <td>
+                  <div className={`character-name-container ${guess.isAnswer ? 'correct' : ''}`}>
+                    {guess.guessrName && (
+                      <div className="character-guessr-name" style={{ fontSize: '12px', color: '#888' }}>来自：{guess.guessrName}</div>
+                    )}
+                    <div className="character-name">{guess.name}</div>
+                    <div className="character-name-cn">{guess.nameCn}</div>
+                  </div>
+                </td>
+                {ATTRIBUTE_COLUMNS.map(column => {
+                  const { tokens, isMatch } = getAttributeDisplay(attrMap, column);
+                  const displayTokens = tokens.length > 0 ? tokens : ['未知'];
+                  return (
+                    <td key={column.label}>
+                      <div className={`attribute-cell ${isMatch ? 'match' : ''}`}>
+                        {displayTokens.map((token, tokenIndex) => (
+                          <span
+                            key={`${column.label}-${tokenIndex}-${token}`}
+                            className={`attribute-token ${token === '未知' ? 'unknown' : ''}`}
+                          >
+                            {token}
+                          </span>
+                        ))}
                       </div>
-                      <div className={`feedback-cell appearance-rating ${guess.ratingFeedback === '=' ? 'correct' : (guess.ratingFeedback === '+' || guess.ratingFeedback === '-') ? 'partial' : guess.ratingFeedback === '?' ? 'unknown' : ''}`}>
-                        {guess.highestRating === -1 ? '无' : guess.highestRating}{(guess.ratingFeedback === '+' || guess.ratingFeedback === '++') ? ' ↓' : (guess.ratingFeedback === '-' || guess.ratingFeedback === '--') ? ' ↑' : ''}
+                    </td>
+                  );
+                })}
+                <td>
+                  <div className="work-info">
+                    {guess.sharedAppearances && guess.sharedAppearances.count > 0 && (
+                      <div className="shared-work-tag">
+                        <div className="attribute-cell match">
+                          <span className="attribute-token">
+                            {guess.sharedAppearances.first}
+                            {guess.sharedAppearances.count > 1 && ` +${guess.sharedAppearances.count - 1}`}
+                          </span>
+                        </div>
                       </div>
+                    )}
+                    <div className="work-list">
+                      {(guess.touhouWorks || []).map(work => (
+                        <div key={work.key} className="work-entry">
+                          {work.label}：{work.value || '未知'}
+                        </div>
+                      ))}
                     </div>
-                  </td>
-                  <td>
-                    <div className="appearance-container">
-                      <div className={`feedback-cell latestAppearance ${guess.latestAppearanceFeedback === '=' ? 'correct' : (guess.latestAppearanceFeedback === '+' || guess.latestAppearanceFeedback === '-') ? 'partial' : guess.latestAppearanceFeedback === '?' ? 'unknown' : ''}`}>
-                        {guess.latestAppearance === -1 ? '无' : guess.latestAppearance}{(guess.latestAppearanceFeedback === '+' || guess.latestAppearanceFeedback === '++') ? ' ↓' : (guess.latestAppearanceFeedback === '-' || guess.latestAppearanceFeedback === '--') ? ' ↑' : ''}
-                      </div>
-                      <div className={`feedback-cell earliestAppearance ${guess.earliestAppearanceFeedback === '=' ? 'correct' : (guess.earliestAppearanceFeedback === '+' || guess.earliestAppearanceFeedback === '-') ? 'partial' : guess.earliestAppearanceFeedback === '?' ? 'unknown' : ''}`}>
-                        {guess.earliestAppearance === -1 ? '无' : guess.earliestAppearance}{(guess.earliestAppearanceFeedback === '+' || guess.earliestAppearanceFeedback === '++') ? ' ↓' : (guess.earliestAppearanceFeedback === '-' || guess.earliestAppearanceFeedback === '--') ? ' ↑' : ''}
-                      </div>
-                    </div>
-                  </td>
-                </>
-              )}
-              <td>
-                <div className="meta-tags-container">
-                  {guess.metaTags.map((tag, tagIndex) => {
-                    const isExpandTag = tag === '展开';
-                    const tagKey = `${guessIndex}-${tagIndex}`;
-                    const isClicked = clickedExpandTags.has(tagKey);
-                    
-                    return (
-                      <span 
-                        key={tagIndex}
-                        className={`meta-tag ${guess.sharedMetaTags.includes(tag) ? 'shared' : ''} ${isExpandTag ? 'expand-tag' : ''}`}
-                        onClick={isExpandTag ? () => handleExpandTagClick(guessIndex, tagIndex) : undefined}
-                        style={isExpandTag && !isClicked ? { color: '#0084B4', cursor: 'pointer' } : undefined}
-                      >
-                        { tag }
-                      </span>
-                    );
-                  })}
-                </div>
-              </td>
-              <td>
-                <span className={`shared-appearances ${guess.sharedAppearances.count > 0 ? 'has-shared' : ''}`}>
-                  {guess.sharedAppearances.first}
-                  {guess.sharedAppearances.count > 1 && ` +${guess.sharedAppearances.count - 1}`}
-                </span>
-              </td>
-            </tr>
-          ))}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
   );
 }
 
-export default GuessesTable; 
+export default GuessesTable;
