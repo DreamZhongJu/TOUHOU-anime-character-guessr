@@ -55,7 +55,7 @@ function GuessesTable({ guesses }) {
             {ATTRIBUTE_COLUMNS.map(column => (
               <th key={column.label}>{column.label}</th>
             ))}
-            <th>出场作品（部分）</th>
+            <th>出场作品（二者中一个则变绿）</th>
           </tr>
         </thead>
         <tbody>
