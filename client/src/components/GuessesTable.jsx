@@ -12,7 +12,7 @@ const ATTRIBUTE_COLUMNS = [
 
 const SPLIT_REGEX = /[\/、，,]+/;
 
-// 公用的拆分函数：把 “剧场版/大叔叉 SUNRISE” 这种切成多个标签
+// 公用拆分函数：把“剧场版/大叔・SUNRISE”这样的字符串切成多个标签
 const splitValue = (value) => {
   if (typeof value !== 'string') return [];
   return value
@@ -22,14 +22,14 @@ const splitValue = (value) => {
 };
 
 function GuessesTable({ guesses, answerCharacter }) {
-  // 1. 先从 guesses 里找到真正的答案行
+  // 优先使用传入的答案（带真实网络标签），否则回退到猜中的那一行
   const answerGuess = (
     Array.isArray(answerCharacter?.networkTags) && answerCharacter.networkTags.length > 0
       ? answerCharacter
       : guesses.find(g => g.isAnswer)
   ) || answerCharacter || {};
 
-  // 2. 兼容几种可能的数据格式：['东方', '同人'] 或 [{ value: '东方' }, ...]
+  // 兼容几种可能的数据格式：['东方', '同人'] 或 [{ value: '东方' }, ...]
   const normalizeTags = (tags) => {
     if (!Array.isArray(tags)) return [];
     return tags.flatMap(t => {
@@ -39,9 +39,14 @@ function GuessesTable({ guesses, answerCharacter }) {
     });
   };
 
-  // 3. 得到答案侧的所有标签（已拆分）
-  const answerNetworkTags = new Set(
-    normalizeTags(answerGuess.networkTags)
+  // 答案侧网络标签集合（已拆分）
+  const answerNetworkTags = new Set(normalizeTags(answerGuess.networkTags));
+
+  // 答案出场作品集合（已拆分）
+  const answerWorkTokens = new Set(
+    (answerGuess.touhouWorks || [])
+      .flatMap(work => splitValue(work.value))
+      .filter(Boolean)
   );
 
   const buildAttributeMap = (guess) => {
@@ -62,10 +67,7 @@ function GuessesTable({ guesses, answerCharacter }) {
     });
 
     const isMatch = column.keys.every(key => attrMap[key]?.match);
-    return {
-      tokens,
-      isMatch
-    };
+    return { tokens, isMatch };
   };
 
   return (
@@ -79,27 +81,33 @@ function GuessesTable({ guesses, answerCharacter }) {
               <th key={column.label}>{column.label}</th>
             ))}
             <th>网络标签</th>
-            <th>出场作品（二者中一个则变绿）</th>
+            <th>出场作品（逐项命中变绿）</th>
           </tr>
         </thead>
         <tbody>
           {guesses.map((guess, guessIndex) => {
             const attrMap = buildAttributeMap(guess);
             const workTokens = (guess.touhouWorks || [])
-              .map(work => work.value)
+              .flatMap(work => splitValue(work.value))
               .filter(v => v && v !== '未知');
 
             const rawNetTags = Array.isArray(guess.networkTags)
               ? guess.networkTags.filter(Boolean)
               : [];
 
-            // 猜测角色的标签，一样拆成 ["东方", "同人", "OVA", ...]
+            // 猜测角色的标签，拆成 ["东方", "同人", "OVA", ...]
             const netTags = rawNetTags.flatMap(tag => splitValue(tag));
 
             // 和答案角色的标签比对，得到真正重合的集合
             const matchedNetTagSet = new Set(
               netTags.filter(tag => answerNetworkTags.has(tag))
             );
+
+            // 出场作品逐个标签对比，命中才变色
+            const matchedWorkTagSet = new Set(
+              workTokens.filter(token => answerWorkTokens.has(token))
+            );
+
             return (
               <tr key={guessIndex}>
                 <td>
@@ -155,22 +163,21 @@ function GuessesTable({ guesses, answerCharacter }) {
                   </div>
                 </td>
 
-                {/* 出场作品（你现在是整格 match，如果要按作品级别变色也可以用同样思路改） */}
+                {/* 出场作品：逐个作品比对变色 */}
                 <td>
-                  <div className="work-info">
-                    <div className="shared-work-tag">
-                      <div className="attribute-cell match">
-                        {workTokens.length > 0 ? (
-                          workTokens.map((work, idx) => (
-                            <span key={`${work}-${idx}`} className="attribute-token">
-                              {work}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="attribute-token unknown">未知</span>
-                        )}
-                      </div>
-                    </div>
+                  <div className="attribute-cell work-cell">
+                    {workTokens.length > 0 ? (
+                      workTokens.map((work, idx) => (
+                        <span
+                          key={`${work}-${idx}`}
+                          className={`attribute-token ${matchedWorkTagSet.has(work) ? 'match' : ''}`}
+                        >
+                          {work}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="attribute-token unknown">未知</span>
+                    )}
                   </div>
                 </td>
               </tr>
