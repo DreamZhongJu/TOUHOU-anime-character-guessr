@@ -11,6 +11,7 @@ const ATTRIBUTE_COLUMNS = [
 ];
 
 const SPLIT_REGEX = /[\/、，,]+/;
+const BLOCKED_TAGS = new Set(['囧仙']);
 
 // 公用拆分函数：把“剧场版/大叔・SUNRISE”这样的字符串切成多个标签
 const splitValue = (value) => {
@@ -36,7 +37,7 @@ function GuessesTable({ guesses, answerCharacter }) {
       if (!t) return [];
       const v = typeof t === 'string' ? t : t.value;
       return splitValue(v);
-    });
+    }).filter(tag => !BLOCKED_TAGS.has(tag));
   };
 
   // 答案侧网络标签集合（已拆分）
@@ -96,7 +97,9 @@ function GuessesTable({ guesses, answerCharacter }) {
               : [];
 
             // 猜测角色的标签，拆成 ["东方", "同人", "OVA", ...]
-            const netTags = rawNetTags.flatMap(tag => splitValue(tag));
+            const netTags = rawNetTags
+              .flatMap(tag => splitValue(tag))
+              .filter(tag => !BLOCKED_TAGS.has(tag));
 
             // 和答案角色的标签比对，得到真正重合的集合
             const matchedNetTagSet = new Set(
