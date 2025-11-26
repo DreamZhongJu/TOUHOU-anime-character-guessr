@@ -23,7 +23,11 @@ const splitValue = (value) => {
 
 function GuessesTable({ guesses, answerCharacter }) {
   // 1. 先从 guesses 里找到真正的答案行
-  const answerGuess = guesses.find(g => g.isAnswer) || answerCharacter || {};
+  const answerGuess = (
+    Array.isArray(answerCharacter?.networkTags) && answerCharacter.networkTags.length > 0
+      ? answerCharacter
+      : guesses.find(g => g.isAnswer)
+  ) || answerCharacter || {};
 
   // 2. 兼容几种可能的数据格式：['东方', '同人'] 或 [{ value: '东方' }, ...]
   const normalizeTags = (tags) => {
@@ -96,11 +100,6 @@ function GuessesTable({ guesses, answerCharacter }) {
             const matchedNetTagSet = new Set(
               netTags.filter(tag => answerNetworkTags.has(tag))
             );
-            console.log('answerCharacter', answerCharacter);
-            console.log('answerCharacter.networkTags', answerCharacter?.networkTags);
-            console.log('answerNetworkTags', Array.from(answerNetworkTags));
-            console.log('netTags', netTags);
-            console.log('matchedNetTagSet', Array.from(matchedNetTagSet));
             return (
               <tr key={guessIndex}>
                 <td>
