@@ -190,6 +190,38 @@
   width: 100%;
 }
 
+.metric-cell {
+  gap: 12px;
+  justify-content: flex-start;
+}
+
+.metric-value {
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: transparent;
+  color: #1f2d3d;
+  font-weight: 600;
+  font-size: 13px;
+  min-width: 54px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.rating-chip {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.trend-up,
+.trend-down {
+  color: #1f2d3d;
+}
+
+.trend-equal {
+  background: #bbf7d0;
+  color: #065f46;
+}
 .feedback-cell {
   display: inline-flex;
   align-items: center;

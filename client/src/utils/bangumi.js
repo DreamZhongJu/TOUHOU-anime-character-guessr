@@ -207,7 +207,7 @@ async function getCharacterAppearances(characterId, gameSettings) {
           if (!gameSettings.metaTags.filter(tag => tag !== '').every(tag => details.meta_tags.includes(tag))){
             return null;
           }
-          
+
           if (latestAppearance === -1 || details.year > latestAppearance) {
             latestAppearance = details.year;
           }
@@ -393,6 +393,10 @@ async function getCharacterDetails(characterId) {
       throw new Error('No character details found');
     }
 
+    const characterTags = Array.isArray(response.data.tags)
+      ? response.data.tags.map(tag => tag.name).filter(Boolean)
+      : [];
+
     // Extract Chinese name from infobox
     const nameCn = response.data.infobox?.find(item => item.key === '简体中文名')?.value || null;
 
@@ -424,7 +428,8 @@ async function getCharacterDetails(characterId) {
       image: response.data.images.medium,
       imageGrid: response.data.images.grid,
       summary: response.data.summary,
-      popularity: response.data.stat.collects+response.data.stat.comments
+      popularity: response.data.stat.collects+response.data.stat.comments,
+      apiCharacterTags: characterTags
     };
   } catch (error) {
     console.error('Error fetching character details:', error);

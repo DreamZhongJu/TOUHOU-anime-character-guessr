@@ -50,6 +50,44 @@ function GuessesTable({ guesses, answerCharacter }) {
       .filter(Boolean)
   );
 
+  const answerPopularity = typeof answerGuess.popularity === 'number' ? answerGuess.popularity : null;
+  const answerHighestRating = typeof answerGuess.highestRating === 'number' ? answerGuess.highestRating : null;
+  const answerLatestAppearance = typeof answerGuess.latestAppearance === 'number' ? answerGuess.latestAppearance : null;
+  const answerEarliestAppearance = typeof answerGuess.earliestAppearance === 'number' ? answerGuess.earliestAppearance : null;
+  const answerWorkCount = Array.isArray(answerGuess.appearanceIds)
+    ? answerGuess.appearanceIds.length
+    : Array.isArray(answerGuess.appearances)
+      ? answerGuess.appearances.length
+      : null;
+
+  const buildTrend = (value, answerValue) => {
+    if (value === null || value === undefined || value === '-' || answerValue === null || answerValue === undefined) {
+      return { display: '未知', trend: null };
+    }
+    const numValue = typeof value === 'string' ? Number(value) : value;
+    const numAnswer = typeof answerValue === 'string' ? Number(answerValue) : answerValue;
+    if (Number.isNaN(numValue) || Number.isNaN(numAnswer)) {
+      return { display: '未知', trend: null };
+    }
+    if (numAnswer > numValue) {
+      return { display: numValue, trend: 'up' };
+    }
+    if (numAnswer < numValue) {
+      return { display: numValue, trend: 'down' };
+    }
+    return { display: numValue, trend: 'equal' };
+  };
+
+  const renderMetric = (metric, extraClass = '') => {
+    const arrow = metric.trend === 'up' ? '↑' : metric.trend === 'down' ? '↓' : '';
+    const trendClass = metric.trend ? `trend-${metric.trend}` : '';
+    return (
+      <span className={`metric-value ${extraClass} ${trendClass}`}>
+        {metric.display}{arrow}
+      </span>
+    );
+  };
+
   const buildAttributeMap = (guess) => {
     const map = {};
     (guess.touhouAttributes || []).forEach(attr => {
@@ -81,8 +119,12 @@ function GuessesTable({ guesses, answerCharacter }) {
             {ATTRIBUTE_COLUMNS.map(column => (
               <th key={column.label}>{column.label}</th>
             ))}
-            <th>网络标签</th>
-            <th>出场作品（逐项命中变绿）</th>
+            <th>网络热度</th>
+            <th>作品数</th>
+            <th>最高分</th>
+            <th>最晚登场</th>
+            <th>最早登场</th>
+            <th>出场作品</th>
           </tr>
         </thead>
         <tbody>
@@ -102,9 +144,27 @@ function GuessesTable({ guesses, answerCharacter }) {
               .filter(tag => !BLOCKED_TAGS.has(tag));
 
             // 和答案角色的标签比对，得到真正重合的集合
-            const matchedNetTagSet = new Set(
-              netTags.filter(tag => answerNetworkTags.has(tag))
-            );
+            const popularityVal = typeof guess.popularity === 'number' ? guess.popularity : null;
+            const workCount = Array.isArray(guess.appearanceIds)
+              ? guess.appearanceIds.length
+              : Array.isArray(guess.appearances)
+                ? guess.appearances.length
+                : null;
+            const highestRatingVal = typeof guess.highestRating === 'number' && guess.highestRating >= 0
+              ? Number(guess.highestRating.toFixed(1))
+              : null;
+            const latestAppearanceVal = typeof guess.latestAppearance === 'number' && guess.latestAppearance > 0
+              ? guess.latestAppearance
+              : null;
+            const earliestAppearanceVal = typeof guess.earliestAppearance === 'number' && guess.earliestAppearance > 0
+              ? guess.earliestAppearance
+              : null;
+
+            const metricPopularity = buildTrend(popularityVal, answerPopularity);
+            const metricWorkCount = buildTrend(workCount, answerWorkCount);
+            const metricHighestRating = buildTrend(highestRatingVal, answerHighestRating);
+            const metricLatest = buildTrend(latestAppearanceVal, answerLatestAppearance);
+            const metricEarliest = buildTrend(earliestAppearanceVal, answerEarliestAppearance);
 
             // 出场作品逐个标签对比，命中才变色
             const matchedWorkTagSet = new Set(
@@ -148,21 +208,38 @@ function GuessesTable({ guesses, answerCharacter }) {
                   );
                 })}
 
-                {/* 网络标签：按单个标签变色 */}
+                {/* 热度 */}
                 <td>
-                  <div className="attribute-cell">
-                    {netTags.length > 0 ? (
-                      netTags.map((tag, idx) => (
-                        <span
-                          key={`${tag}-${idx}`}
-                          className={`attribute-token ${matchedNetTagSet.has(tag) ? 'match' : ''}`}
-                        >
-                          {tag}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="attribute-token unknown">未知</span>
-                    )}
+                  <div className="attribute-cell metric-cell">
+                    {renderMetric(metricPopularity)}
+                  </div>
+                </td>
+
+                {/* 作品数 / 最高分 */}
+                <td>
+                  <div className="attribute-cell metric-cell">
+                    {renderMetric(metricWorkCount)}
+                  </div>
+                </td>
+
+                {/* 最高分 */}
+                <td>
+                  <div className="attribute-cell metric-cell">
+                    {renderMetric(metricHighestRating, 'rating-chip')}
+                  </div>
+                </td>
+
+                {/* 最晚登场 */}
+                <td>
+                  <div className="attribute-cell metric-cell">
+                    {renderMetric(metricLatest)}
+                  </div>
+                </td>
+
+                {/* 最早登场 */}
+                <td>
+                  <div className="attribute-cell metric-cell">
+                    {renderMetric(metricEarliest)}
                   </div>
                 </td>
 
