@@ -184,6 +184,9 @@ function SettingsPopup({ gameSettings, onSettingsChange, onClose, onRestart, hid
   return (
     <div className="popup-overlay">
       <div className="popup-content">
+        <div className="touhou-overlay-banner">
+          东方模式下，原版规则不可用，敬请留意
+        </div>
        {hideRestart ? (
           <button className="popup-close multiplayer-confirm" onClick={onClose}>确认修改</button>
         ) : (

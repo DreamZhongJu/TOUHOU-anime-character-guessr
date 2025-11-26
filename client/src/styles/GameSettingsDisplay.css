@@ -9,6 +9,17 @@
   overflow: hidden;
 }
 
+.touhou-overlay-banner {
+  margin: 0 0 8px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(120, 127, 140, 0.08);
+  color: #7a1030;
+  font-weight: 700;
+  text-align: center;
+  border: 1px dashed rgba(122, 16, 48, 0.25);
+}
+
 .settings-display-header {
   display: flex;
   justify-content: space-between;
