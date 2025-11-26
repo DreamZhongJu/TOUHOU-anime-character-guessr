@@ -51,6 +51,21 @@ function SinglePlayer() {
   });
   const [currentGameSettings, setCurrentGameSettings] = useState(gameSettings);
 
+  const buildAnswerCharacter = async (settings) => {
+    const baseCharacter = await getRandomCharacter(settings);
+    try {
+      const appearances = await getCharacterAppearances(baseCharacter.id, settings);
+      return {
+        ...baseCharacter,
+        ...appearances,
+        networkTags: Array.isArray(appearances.networkTags) ? appearances.networkTags : []
+      };
+    } catch (error) {
+      console.error('Failed to fetch answer appearances:', error);
+      return baseCharacter;
+    }
+  };
+
   // Initialize game
   useEffect(() => {
     let isMounted = true;
@@ -70,7 +85,7 @@ function SinglePlayer() {
         console.error('Failed to update subject count:', error);
       }
       try {
-        const character = await getRandomCharacter(gameSettings);
+        const character = await buildAnswerCharacter(gameSettings);
         setCurrentGameSettings({ ...gameSettings });
         if (isMounted) {
           setAnswerCharacter(character);
@@ -212,7 +227,7 @@ function SinglePlayer() {
     }
     try {
       setCurrentGameSettings({ ...gameSettings });
-      const character = await getRandomCharacter(gameSettings);
+      const character = await buildAnswerCharacter(gameSettings);
       setAnswerCharacter(character);
       console.log('[DEBUG] 单人答案:', character.nameCn || character.name, `(id: ${character.id})`);
       // Prepare hints based on settings for new game
