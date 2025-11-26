@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { io } from 'socket.io-client';
-import { getRandomCharacter, getCharacterAppearances, generateFeedback } from '../utils/bangumi';
+import { getRandomCharacter, getCharacterAppearances, getCharacterDetails, generateFeedback } from '../utils/bangumi';
 import SettingsPopup from '../components/SettingsPopup';
 import SearchBar from '../components/SearchBar';
 import GuessesTable from '../components/GuessesTable';
@@ -38,7 +38,7 @@ const Multiplayer = () => {
   const [answerSetterId, setAnswerSetterId] = useState(null);
   const [waitingForAnswer, setWaitingForAnswer] = useState(false);
   const [gameSettings, setGameSettings] = useState({
-    startYear: new Date().getFullYear()-5,
+    startYear: new Date().getFullYear() - 5,
     endYear: new Date().getFullYear(),
     topNSubjects: 20,
     useSubjectPerYear: false,
@@ -86,6 +86,33 @@ const Multiplayer = () => {
   const [kickNotification, setKickNotification] = useState(null);
   const [answerViewMode, setAnswerViewMode] = useState('simple'); // 'simple' or 'detailed'
 
+  const buildAnswerCharacter = async (settings) => {
+    const baseCharacter = await getRandomCharacter(settings);
+    try {
+      const [appearances, details] = await Promise.all([
+        getCharacterAppearances(baseCharacter.id, settings),
+        getCharacterDetails(baseCharacter.id)
+      ]);
+      const apiDisplayTags = Array.isArray(appearances?.metaTags) && appearances.metaTags.length > 0
+        ? appearances.metaTags
+        : Array.isArray(appearances?.networkTags)
+          ? appearances.networkTags
+          : Array.isArray(details?.apiCharacterTags)
+            ? details.apiCharacterTags
+            : [];
+
+      return {
+        ...baseCharacter,
+        ...appearances,
+        apiCharacterTags: apiDisplayTags,
+        networkTags: Array.isArray(appearances.networkTags) ? appearances.networkTags : []
+      };
+    } catch (error) {
+      console.error('Failed to fetch answer appearances:', error);
+      return baseCharacter;
+    }
+  };
+
   useEffect(() => {
     // Initialize socket connection
     const newSocket = io(SOCKET_URL);
@@ -93,7 +120,7 @@ const Multiplayer = () => {
     socketRef.current = newSocket;
 
     // 用于追踪事件是否已经被处理
-    const kickEventProcessed = {}; 
+    const kickEventProcessed = {};
 
     // Socket event listeners
     newSocket.on('updatePlayers', ({ players, isPublic, answerSetterId }) => {
@@ -127,13 +154,13 @@ const Multiplayer = () => {
       answerCharacterRef.current = enrichedCharacter;
       console.log('[DEBUG] 多人答案:', enrichedCharacter.nameCn || enrichedCharacter.name, `(id: ${enrichedCharacter.id})`);
       setGameSettings(settings);
-      
+
       // Calculate guesses left based on current player's guess history
       const currentPlayer = players?.find(p => p.id === newSocket.id);
       const guessesMade = currentPlayer?.guesses?.length || 0;
       const remainingGuesses = Math.max(0, settings.maxAttempts - guessesMade);
       setGuessesLeft(remainingGuesses);
-      
+
       setIsAnswerSetter(isAnswerSetterFlag);
       if (players) {
         setPlayers(players);
@@ -149,18 +176,16 @@ const Multiplayer = () => {
       if (Array.isArray(settings.useHints) && settings.useHints.length > 0 && hints) {
         hintTexts = hints;
       } else if (Array.isArray(settings.useHints) && settings.useHints.length > 0 && enrichedCharacter && enrichedCharacter.summary) {
-        // Automatic mode - generate hints from summary
-        const sentences = enrichedCharacter.summary.replace('[mask]', '').replace('[/mask]','')
-          .split(/[???????""]/).filter(s => s.trim());
+        const sentences = enrichedCharacter.summary.replace('[mask]', '').replace('[/mask]', '')
+          .split(/[?????,????"!?]/).filter(s => s.trim());
         if (sentences.length > 0) {
           const selectedIndices = new Set();
           while (selectedIndices.size < Math.min(settings.useHints.length, sentences.length)) {
             selectedIndices.add(Math.floor(Math.random() * sentences.length));
           }
-          hintTexts = Array.from(selectedIndices).map(i => '...'+sentences[i].trim()+'...');
+          hintTexts = Array.from(selectedIndices).map(i => `??${sentences[i].trim()}??`);
         }
       }
-      setHints(hintTexts);
       setUseImageHint(settings.useImageHint);
       setImgHint(settings.useImageHint > 0 ? enrichedCharacter.image : null);
       setGlobalGameEnd(false);
@@ -227,12 +252,12 @@ const Multiplayer = () => {
       const eventId = `${playerId}-${Date.now()}`;
       if (kickEventProcessed[eventId]) return;
       kickEventProcessed[eventId] = true;
-      
+
       if (playerId === newSocket.id) {
         // 如果当前玩家被踢出，显示通知并重定向到多人游戏大厅
         showKickNotification('你已被房主踢出房间', 'kick');
-        setIsJoined(false); 
-        setGameEnd(true); 
+        setIsJoined(false);
+        setGameEnd(true);
         setTimeout(() => {
           navigate('/multiplayer');
         }, 100); // 延长延迟时间确保通知显示后再跳转
@@ -519,54 +544,54 @@ const Multiplayer = () => {
   };
 
   const handleStartGame = async () => {
-    if (isHost) {
-      try {
-        if (gameSettings.addedSubjects.length > 0) {
-          await axios.post(SOCKET_URL + '/api/subject-added', {
-            addedSubjects: gameSettings.addedSubjects
-          });
-        }
-      } catch (error) {
-        console.error('Failed to update subject count:', error);
-      }
-      try {
-        const character = await getRandomCharacter(gameSettings);
-        character.rawTags = Array.from(character.rawTags.entries());
-        const encryptedCharacter = CryptoJS.AES.encrypt(JSON.stringify(character), secret).toString();
-        socketRef.current?.emit('gameStart', {
-          roomId,
-          character: encryptedCharacter,
-          settings: gameSettings
+    if (!isHost) return;
+    try {
+      if (gameSettings.addedSubjects.length > 0) {
+        await axios.post(SOCKET_URL + '/api/subject-added', {
+          addedSubjects: gameSettings.addedSubjects
         });
-
-        // Update local state
-        setAnswerCharacter(character);
-        setGuessesLeft(gameSettings.maxAttempts);
-
-        // Prepare hints if enabled
-        let hintTexts = [];
-        if (Array.isArray(gameSettings.useHints) && gameSettings.useHints.length > 0 && character.summary) {
-          const sentences = character.summary.replace('[mask]', '').replace('[/mask]','')
-            .split(/[。、，。！？ ""]/).filter(s => s.trim());
-          if (sentences.length > 0) {
-            const selectedIndices = new Set();
-            while (selectedIndices.size < Math.min(gameSettings.useHints.length, sentences.length)) {
-              selectedIndices.add(Math.floor(Math.random() * sentences.length));
-            }
-            hintTexts = Array.from(selectedIndices).map(i => "……"+sentences[i].trim()+"……");
-          }
-        }
-        setHints(hintTexts);
-        setUseImageHint(gameSettings.useImageHint);
-        setImgHint(gameSettings.useImageHint > 0 ? character.image : null);
-        setGlobalGameEnd(false);
-        setIsGameStarted(true);
-        setGameEnd(false);
-        setGuesses([]);
-      } catch (error) {
-        console.error('Failed to initialize game:', error);
-        alert('游戏初始化失败，请重试');
       }
+    } catch (error) {
+      console.error('Failed to update subject count:', error);
+    }
+    try {
+      const character = await buildAnswerCharacter(gameSettings);
+      if (character.rawTags instanceof Map) {
+        character.rawTags = Array.from(character.rawTags.entries());
+      }
+      const encryptedCharacter = CryptoJS.AES.encrypt(JSON.stringify(character), secret).toString();
+      socketRef.current?.emit('gameStart', {
+        roomId,
+        character: encryptedCharacter,
+        settings: gameSettings
+      });
+
+      setAnswerCharacter(character);
+      answerCharacterRef.current = character;
+      setGuessesLeft(gameSettings.maxAttempts);
+
+      let hintTexts = [];
+      if (Array.isArray(gameSettings.useHints) && gameSettings.useHints.length > 0 && character.summary) {
+        const sentences = character.summary.replace('[mask]', '').replace('[/mask]', '')
+          .split(/[?????,????\"!?]/).filter(s => s.trim());
+        if (sentences.length > 0) {
+          const selectedIndices = new Set();
+          while (selectedIndices.size < Math.min(gameSettings.useHints.length, sentences.length)) {
+            selectedIndices.add(Math.floor(Math.random() * sentences.length));
+          }
+          hintTexts = Array.from(selectedIndices).map(i => `??${sentences[i].trim()}??`);
+        }
+      }
+      setHints(hintTexts);
+      setUseImageHint(gameSettings.useImageHint);
+      setImgHint(gameSettings.useImageHint > 0 ? character.image : null);
+      setGlobalGameEnd(false);
+      setIsGameStarted(true);
+      setGameEnd(false);
+      setGuesses([]);
+    } catch (error) {
+      console.error('Failed to initialize game:', error);
+      alert('游戏初始化失败，请重试');
     }
   };
 
@@ -608,20 +633,20 @@ const Multiplayer = () => {
 
   const handleKickPlayer = (playerId) => {
     if (!isHost || !socketRef.current) return;
-    
+
     // 确认当前玩家是房主
     const currentPlayer = players.find(p => p.id === socketRef.current.id);
     if (!currentPlayer || !currentPlayer.isHost) {
       alert('只有房主可以踢出玩家');
       return;
     }
-    
+
     // 防止房主踢出自己
     if (playerId === socketRef.current.id) {
       alert('房主不能踢出自己');
       return;
     }
-    
+
     // 确认后再踢出
     if (window.confirm('确定要踢出该玩家吗？')) {
       try {
@@ -635,7 +660,7 @@ const Multiplayer = () => {
 
   const handleTransferHost = (playerId) => {
     if (!isHost || !socketRef.current) return;
-    
+
     // 确认后再转移房主
     if (window.confirm('确定要将房主权限转移给该玩家吗？')) {
       socketRef.current.emit('transferHost', { roomId, newHostId: playerId });
@@ -704,13 +729,13 @@ const Multiplayer = () => {
         </div>
       )}
       <a
-          href="/"
-          className="social-link floating-back-button"
-          title="Back"
-          onClick={(e) => {
-            e.preventDefault();
-            navigate('/');
-          }}
+        href="/"
+        className="social-link floating-back-button"
+        title="Back"
+        onClick={(e) => {
+          e.preventDefault();
+          navigate('/');
+        }}
       >
         <i className="fas fa-angle-left"></i>
       </a>
@@ -738,9 +763,9 @@ const Multiplayer = () => {
         </>
       ) : (
         <>
-          <PlayerList 
-            players={players} 
-            socket={socketRef.current} 
+          <PlayerList
+            players={players}
+            socket={socketRef.current}
             isGameStarted={isGameStarted}
             handleReadyToggle={handleReadyToggle}
             onAnonymousModeChange={setShowNames}
@@ -754,7 +779,7 @@ const Multiplayer = () => {
             onTeamChange={handleTeamChange}
           />
           <div className="anonymous-mode-info">
-            匿名模式？点表头"名"切换。<br/>
+            匿名模式？点表头"名"切换。<br />
             沟通玩法？点自己名字编辑短信息。
           </div>
 
@@ -851,14 +876,14 @@ const Multiplayer = () => {
                       <div className="hints">
                         {gameSettings.useHints.map((val, idx) => (
                           guessesLeft <= val && hints[idx] && (
-                            <div className="hint" key={idx}>提示{idx+1}: {hints[idx]}</div>
+                            <div className="hint" key={idx}>提示{idx + 1}: {hints[idx]}</div>
                           )
                         ))}
                       </div>
                     )}
-                    {guessesLeft <= useImageHint && imgHint &&(
+                    {guessesLeft <= useImageHint && imgHint && (
                       <div className="hint-container">
-                        <img src={imgHint} style={{height: '200px', filter: `blur(${guessesLeft}px)`}} alt="提示" />
+                        <img src={imgHint} style={{ height: '200px', filter: `blur(${guessesLeft}px)` }} alt="提示" />
                       </div>
                     )}
                   </div>
@@ -889,7 +914,7 @@ const Multiplayer = () => {
                     </button>
                     <button
                       className={answerViewMode === 'detailed' ? 'active' : ''}
-                      style={{ padding: '4px 12px', borderRadius: 6, border: '1px solid #ccc', background: answerViewMode === 'detailed' ? '#e0e0e0' : '#fff', cursor: 'pointer', color: 'inherit'}}
+                      style={{ padding: '4px 12px', borderRadius: 6, border: '1px solid #ccc', background: answerViewMode === 'detailed' ? '#e0e0e0' : '#fff', cursor: 'pointer', color: 'inherit' }}
                       onClick={() => setAnswerViewMode('detailed')}
                     >
                       详细
