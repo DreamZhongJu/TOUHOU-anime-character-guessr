@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { getRandomCharacter, getCharacterAppearances, generateFeedback } from '../utils/bangumi';
+import { getRandomCharacter, getCharacterAppearances, generateFeedback, getCharacterDetails } from '../utils/bangumi';
 import SearchBar from '../components/SearchBar';
 import GuessesTable from '../components/GuessesTable';
 import SettingsPopup from '../components/SettingsPopup';
@@ -54,10 +54,22 @@ function SinglePlayer() {
   const buildAnswerCharacter = async (settings) => {
     const baseCharacter = await getRandomCharacter(settings);
     try {
-      const appearances = await getCharacterAppearances(baseCharacter.id, settings);
+      const [appearances, details] = await Promise.all([
+        getCharacterAppearances(baseCharacter.id, settings),
+        getCharacterDetails(baseCharacter.id)
+      ]);
+      const apiDisplayTags = Array.isArray(appearances?.metaTags) && appearances.metaTags.length > 0
+        ? appearances.metaTags
+        : Array.isArray(appearances?.networkTags)
+          ? appearances.networkTags
+          : Array.isArray(details?.apiCharacterTags)
+            ? details.apiCharacterTags
+            : [];
+
       return {
         ...baseCharacter,
         ...appearances,
+        apiCharacterTags: apiDisplayTags,
         networkTags: Array.isArray(appearances.networkTags) ? appearances.networkTags : []
       };
     } catch (error) {
@@ -136,11 +148,23 @@ function SinglePlayer() {
     }
 
     try {
-      const appearances = await getCharacterAppearances(character.id, currentGameSettings);
+      const [appearances, details] = await Promise.all([
+        getCharacterAppearances(character.id, currentGameSettings),
+        getCharacterDetails(character.id)
+      ]);
+
+      const apiDisplayTags = Array.isArray(appearances?.metaTags) && appearances.metaTags.length > 0
+        ? appearances.metaTags
+        : Array.isArray(appearances?.networkTags)
+          ? appearances.networkTags
+          : Array.isArray(details?.apiCharacterTags)
+            ? details.apiCharacterTags
+            : [];
 
       const guessData = enrichWithTouhouData({
         ...character,
-        ...appearances
+        ...appearances,
+        apiCharacterTags: apiDisplayTags
       });
       if (!guessData.networkTags && appearances.rawTags instanceof Map) {
         guessData.networkTags = Array.from(appearances.rawTags.keys());
@@ -160,6 +184,13 @@ function SinglePlayer() {
         genderFeedback: guessData.gender === answerCharacter.gender ? 'yes' : 'no',
         metaTags: Array.isArray(guessData.metaTags) ? guessData.metaTags : [],
         networkTags: Array.isArray(guessData.networkTags) ? guessData.networkTags : [],
+        apiCharacterTags: Array.isArray(guessData.apiCharacterTags) ? guessData.apiCharacterTags : [],
+        popularity: typeof guessData.popularity === 'number' ? guessData.popularity : null,
+        highestRating: typeof guessData.highestRating === 'number' ? guessData.highestRating : null,
+        latestAppearance: typeof guessData.latestAppearance === 'number' ? guessData.latestAppearance : null,
+        earliestAppearance: typeof guessData.earliestAppearance === 'number' ? guessData.earliestAppearance : null,
+        appearances: Array.isArray(guessData.appearances) ? guessData.appearances : [],
+        appearanceIds: Array.isArray(guessData.appearanceIds) ? guessData.appearanceIds : [],
         sharedMetaTags: feedback.metaTags.shared,
         sharedAppearances: feedback.shared_appearances,
         touhouAttributes: feedback.touhouAttributes,
