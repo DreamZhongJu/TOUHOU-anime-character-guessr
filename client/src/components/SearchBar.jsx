@@ -299,7 +299,7 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
       return (
         <div className="search-dropdown" ref={searchDropdownRef}>
           {isSearching ? (
-            <div className="search-loading">搜索中...</div>
+            <div className="search-loading">巫女检索中…</div>
           ) : (
             searchResults.map((subject, index) => (
               <div
@@ -316,7 +316,7 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
                   />
                 ) : (
                   <div className="result-character-icon no-image">
-                    无图片
+                    无立绘
                   </div>
                 )}
                 <div className="result-character-info">
@@ -343,12 +343,12 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
                 handleSubjectSearch();
               }}
             >
-              返回
+              返回巫女档案
             </button>
           </div>
         )}
         {isSearching ? (
-          <div className="search-loading">加载角色中...</div>
+          <div className="search-loading">加载角色中…</div>
         ) : (
           <>
             {searchResults.map((character, index) => (
@@ -366,7 +366,7 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
                   />
                 ) : (
                   <div className="result-character-icon no-image">
-                    无图片
+                    无立绘
                   </div>
                 )}
                 <div className="result-character-info">
@@ -381,7 +381,7 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
                 onClick={handleLoadMore}
                 ref={selectedItemIndex === searchResults.length ? selectedItemRef : null}
               >
-                {isLoadingMore ? '加载中...' : '更多'}
+                {isLoadingMore ? '加载中…' : '更多线索'}
               </div>
             )}
           </>
@@ -400,7 +400,7 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             disabled={isGuessing || gameEnd}
-            placeholder={searchMode === 'character' ? "搜索想猜的角色..." : "搜索想猜的作品..."}
+            placeholder={searchMode === 'character' ? "搜想祭的角色…" : "搜想祭的作品…"}
             ref={searchInputRef}
           />
           {renderSearchResults()}
@@ -413,7 +413,7 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
           }}
           disabled={!searchQuery.trim() || isSearching || isGuessing || gameEnd}
         >
-          {isSearching && searchMode === 'character' ? '在搜了...' : isGuessing ? '在猜了...' : '搜角色'}
+          {isSearching && searchMode === 'character' ? '结界查询中…' : isGuessing ? '符卡判定中…' : '搜角色'}
         </button>
         {subjectSearch && (
           <button 
@@ -424,7 +424,7 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
             }}
             disabled={!searchQuery.trim() || isSearching || isGuessing || gameEnd}
           >
-            {isSearching && searchMode === 'subject' ? '在搜了...' : '搜作品'}
+            {isSearching && searchMode === 'subject' ? '搜作品中…' : '搜作品'}
           </button>
         )}
       </div>

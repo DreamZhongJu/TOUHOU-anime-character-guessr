@@ -5,6 +5,11 @@
 
 .multiplayer-container {
   width: 100%;
+  min-width: 1400px;
+  max-width: none;
+  margin: 0 auto;
+  padding-left: 18px;
+  padding-right: 18px;
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -197,11 +202,14 @@
   width: 100%;
   border-collapse: collapse;
   margin-top: 1rem;
-  border: 1px solid #ccc; /* Table outline */
+  border: 1px solid #ccc;
+  /* Table outline */
 }
 
-.score-table th, .score-table td {
-  border: 1px solid #ccc; /* Inline borders */
+.score-table th,
+.score-table td {
+  border: 1px solid #ccc;
+  /* Inline borders */
   padding: 0.5rem;
   text-align: center;
 }
@@ -213,18 +221,25 @@
 .score-table th:nth-child(1) {
   width: 20%;
 }
+
 .score-table th:nth-child(2) {
-  width: 8%; /* 队 column: small */
+  width: 8%;
+  /* 队 column: small */
 }
 
 .score-table th:nth-child(4) {
-  width: 26%; /* 名 column: larger */
+  width: 26%;
+  /* 名 column: larger */
 }
+
 .score-table th:nth-child(5) {
-  width: 8%; /* 分 column: small */
+  width: 8%;
+  /* 分 column: small */
 }
+
 .score-table th:nth-child(6) {
-  width: 32%; /* 猜 column: large */
+  width: 32%;
+  /* 猜 column: large */
 }
 
 .score-table .table-head-name-button {
@@ -275,12 +290,12 @@
   min-width: 70px;
 }
 
-.action-dropdown{
+.action-dropdown {
   position: absolute;
   background: white;
   border: 1px solid #dee2e6;
   border-radius: 4px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
   z-index: 100;
   width: 120px;
   right: 0;
@@ -288,7 +303,7 @@
   margin-top: 4px;
 }
 
-.action-dropdown .action-button{
+.action-dropdown .action-button {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -302,7 +317,8 @@
   border-bottom: 1px solid #eee;
   border-radius: 0px;
 }
-.action-dropdown .action-button:hover{
+
+.action-dropdown .action-button:hover {
   background-color: #d8d8d8;
 }
 
@@ -505,17 +521,17 @@
     background: #e2e8f0;
     color: #1e293b;
   }
-  
+
   .score-table th button {
     color: #1e293b;
   }
-  
+
   .visibility-button {
     background-color: #f39c12;
     color: white;
     border: none;
   }
-  
+
   .visibility-button:hover {
     background-color: #e67e22;
   }
@@ -537,12 +553,14 @@
 }
 
 .fa-angle-left {
-  width:30px;
+  width: 30px;
   height: 30px;
-  font-size: 24px;  /* 调大图标大小 */
+  font-size: 24px;
+  /* 调大图标大小 */
   color: white;
   background: linear-gradient(135deg, #6e8efb, #a777e3);
-  padding: 16px 18px 16px 16px;  /* 调大内边距，使按钮更大 */
+  padding: 16px 18px 16px 16px;
+  /* 调大内边距，使按钮更大 */
   border-radius: 50%;
   transition: all 0.3s ease;
   cursor: pointer;
@@ -555,7 +573,8 @@
   position: fixed;
   top: 20px;
   left: 20px;
-  z-index: 1000;  /* 确保按钮在最上层 */
+  z-index: 1000;
+  /* 确保按钮在最上层 */
 }
 
 .fa-angle-left:hover {
@@ -567,7 +586,8 @@
 
 .answer-setter-view {
   padding: 20px;
-  max-width: 1200px;
+  max-width: none;
+  min-width: 1200px;
   margin: 0 auto;
 }
 
@@ -659,6 +679,7 @@
     transform: translateX(-50%) translateY(-100px);
     opacity: 0;
   }
+
   to {
     transform: translateX(-50%) translateY(0);
     opacity: 1;
@@ -679,9 +700,12 @@
   height: 44px;
 }
 
-.score-table td:nth-child(3), .score-table th:nth-child(3) {
+.score-table td:nth-child(3),
+.score-table th:nth-child(3) {
   border-right: none;
 }
-.score-table td:nth-child(4), .score-table th:nth-child(4) {
+
+.score-table td:nth-child(4),
+.score-table th:nth-child(4) {
   border-left: none;
 }

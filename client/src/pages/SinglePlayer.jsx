@@ -78,7 +78,6 @@ function SinglePlayer() {
     }
   };
 
-  // Initialize game
   useEffect(() => {
     let isMounted = true;
 
@@ -101,32 +100,31 @@ function SinglePlayer() {
         setCurrentGameSettings({ ...gameSettings });
         if (isMounted) {
           setAnswerCharacter(character);
-          console.log('[DEBUG] 单人答案:', character.nameCn || character.name, `(id: ${character.id})`);
+          console.log('[DEBUG] 单人占卜结果:', character.nameCn || character.name, `(id: ${character.id})`);
           setGuessesLeft(gameSettings.maxAttempts);
-          // Prepare hints based on settings
+
           let hintTexts = [];
           if (Array.isArray(gameSettings.useHints) && gameSettings.useHints.length > 0 && character.summary) {
             const sentences = character.summary.replace('[mask]', '').replace('[/mask]', '')
-              .split(/[。、，。！？ ""]/).filter(s => s.trim());
+              .split(/[。？！、，,「」“”"!?]/).filter(s => s.trim());
             if (sentences.length > 0) {
-              // Randomly select as many hints as needed
               const selectedIndices = new Set();
               while (selectedIndices.size < Math.min(gameSettings.useHints.length, sentences.length)) {
                 selectedIndices.add(Math.floor(Math.random() * sentences.length));
               }
-              hintTexts = Array.from(selectedIndices).map(i => "……" + sentences[i].trim() + "……");
+              hintTexts = Array.from(selectedIndices).map(i => `……${sentences[i].trim()}……`);
             }
           }
           setHints(hintTexts);
           setUseImageHint(gameSettings.useImageHint);
           setImgHint(gameSettings.useImageHint > 0 ? character.image : null);
-          console.log('初始化游戏', gameSettings);
+          console.log('初始化游玩参数：', gameSettings);
           setFinishInit(true);
         }
       } catch (error) {
         console.error('Failed to initialize game:', error);
         if (isMounted) {
-          alert('游戏初始化失败，请刷新页面重试，或在设置里清理缓存');
+          alert('初始化失败，先喝口茶再刷新试试看，或在设置里清理缓存。');
         }
       }
     };
@@ -144,7 +142,7 @@ function SinglePlayer() {
     setIsGuessing(true);
     setShouldResetTimer(true);
     if (character.id === 56822 || character.id === 56823) {
-      alert('????');
+      alert('巫女提示：向灵梦投币？（玩笑彩蛋）');
     }
 
     try {
@@ -202,7 +200,7 @@ function SinglePlayer() {
         setGuesses(prevGuesses => [...prevGuesses, buildGuessEntry(true)]);
 
         setGameEnd(true);
-        alert('恭喜你，猜对了！');
+        alert('猜中啦！灵梦请你喝杯博丽神社的茶。');
         setGameEndPopup({
           result: 'win',
           answer: answerCharacter
@@ -211,7 +209,7 @@ function SinglePlayer() {
         setGuesses(prevGuesses => [...prevGuesses, buildGuessEntry(false)]);
 
         setGameEnd(true);
-        alert('????????????????');
+        alert('符卡耗尽，这次占卜就到此为止。');
         setGameEndPopup({
           result: 'lose',
           answer: answerCharacter
@@ -221,7 +219,7 @@ function SinglePlayer() {
       }
     } catch (error) {
       console.error('Error processing guess:', error);
-      alert('Error processing guess');
+      alert('巫女忙不过来，请稍后再试。');
     } finally {
       setIsGuessing(false);
       setShouldResetTimer(false);
@@ -260,35 +258,35 @@ function SinglePlayer() {
       setCurrentGameSettings({ ...gameSettings });
       const character = await buildAnswerCharacter(gameSettings);
       setAnswerCharacter(character);
-      console.log('[DEBUG] 单人答案:', character.nameCn || character.name, `(id: ${character.id})`);
-      // Prepare hints based on settings for new game
+      console.log('[DEBUG] 单人占卜结果:', character.nameCn || character.name, `(id: ${character.id})`);
+
       let hintTexts = [];
       if (Array.isArray(gameSettings.useHints) && gameSettings.useHints.length > 0 && character.summary) {
         const sentences = character.summary.replace('[mask]', '').replace('[/mask]', '')
-          .split(/[。、，。！？ ""]/).filter(s => s.trim());
+          .split(/[。？！、，,「」“”"!?]/).filter(s => s.trim());
         if (sentences.length > 0) {
           const selectedIndices = new Set();
           while (selectedIndices.size < Math.min(gameSettings.useHints.length, sentences.length)) {
             selectedIndices.add(Math.floor(Math.random() * sentences.length));
           }
-          hintTexts = Array.from(selectedIndices).map(i => "……" + sentences[i].trim() + "……");
+          hintTexts = Array.from(selectedIndices).map(i => `……${sentences[i].trim()}……`);
         }
       }
       setHints(hintTexts);
       setUseImageHint(gameSettings.useImageHint);
       setImgHint(gameSettings.useImageHint > 0 ? character.image : null);
-      console.log('初始化游戏', gameSettings);
+      console.log('初始化游玩参数：', gameSettings);
       setFinishInit(true);
     } catch (error) {
       console.error('Failed to initialize new game:', error);
-      alert('游戏初始化失败，请刷新页面重试，或在设置里清理缓存');
+      alert('初始化失败，先喝口茶再刷新试试看，或在设置里清理缓存。');
     }
   };
 
   const timeUpRef = useRef(false);
 
   const handleTimeUp = () => {
-    if (timeUpRef.current) return; // prevent multiple triggers
+    if (timeUpRef.current) return;
     timeUpRef.current = true;
 
     setGuessesLeft(prev => {
@@ -317,7 +315,7 @@ function SinglePlayer() {
       result: 'lose',
       answer: answerCharacter
     });
-    alert('已投降！查看角色详情');
+    alert('巫女放下符卡，点击查看角色真名。');
   };
 
   return (
