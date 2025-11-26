@@ -47,19 +47,68 @@
 }
 
 /* Table column widths */
-.guesses-table th:nth-child(1), .guesses-table td:nth-child(1) { width: 60px; } /* Icon */
-.guesses-table th:nth-child(2), .guesses-table td:nth-child(2) { 
+.guesses-table th:nth-child(1),
+.guesses-table td:nth-child(1) {
+  width: 60px;
+}
+
+/* Icon */
+.guesses-table th:nth-child(2),
+.guesses-table td:nth-child(2) {
   width: 190px;
   text-align: left;
-} /* Name */
-.guesses-table th:nth-child(3), .guesses-table td:nth-child(3) { width: 110px; } /* ?? */
-.guesses-table th:nth-child(4), .guesses-table td:nth-child(4) { width: 120px; } /* ?? */
-.guesses-table th:nth-child(5), .guesses-table td:nth-child(5) { width: 120px; } /* ?? */
-.guesses-table th:nth-child(6), .guesses-table td:nth-child(6) { width: 120px; } /* ?? */
-.guesses-table th:nth-child(7), .guesses-table td:nth-child(7) { width: 150px; } /* ?? */
-.guesses-table th:nth-child(8), .guesses-table td:nth-child(8) { width: 110px; } /* ?? */
-.guesses-table th:nth-child(9), .guesses-table td:nth-child(9) { width: 110px; } /* ?? */
-.guesses-table th:nth-child(10), .guesses-table td:nth-child(10) { width: 230px; text-align: left; } /* Works */
+}
+
+/* Name */
+.guesses-table th:nth-child(3),
+.guesses-table td:nth-child(3) {
+  width: 110px;
+}
+
+/* ?? */
+.guesses-table th:nth-child(4),
+.guesses-table td:nth-child(4) {
+  width: 120px;
+}
+
+/* ?? */
+.guesses-table th:nth-child(5),
+.guesses-table td:nth-child(5) {
+  width: 120px;
+}
+
+/* ?? */
+.guesses-table th:nth-child(6),
+.guesses-table td:nth-child(6) {
+  width: 120px;
+}
+
+/* ?? */
+.guesses-table th:nth-child(7),
+.guesses-table td:nth-child(7) {
+  width: 150px;
+}
+
+/* ?? */
+.guesses-table th:nth-child(8),
+.guesses-table td:nth-child(8) {
+  width: 110px;
+}
+
+/* ?? */
+.guesses-table th:nth-child(9),
+.guesses-table td:nth-child(9) {
+  width: 110px;
+}
+
+/* ?? */
+.guesses-table th:nth-child(10),
+.guesses-table td:nth-child(10) {
+  width: 230px;
+  text-align: left;
+}
+
+/* Works */
 
 /* Character name display */
 .character-name-container {
@@ -134,13 +183,11 @@
 .feedback-cell.unknown {
   background-color: #f1f5f9;
   color: #64748b;
-  background-image: repeating-linear-gradient(
-    -45deg,
-    transparent,
-    transparent 4px,
-    #e2e8f0 4px,
-    #e2e8f0 8px
-  );
+  background-image: repeating-linear-gradient(-45deg,
+      transparent,
+      transparent 4px,
+      #e2e8f0 4px,
+      #e2e8f0 8px);
   opacity: 0.9;
 }
 
@@ -174,6 +221,14 @@
   font-size: 12px;
   line-height: 1.4;
 }
+
+/* 单个标签匹配时（比如网络标签里与答案重合的部分） */
+.attribute-token.match {
+  background: #bbf7d0;
+  color: #14532d;
+  font-weight: 600;
+}
+
 
 .attribute-cell.match .attribute-token {
   background: rgba(255, 255, 255, 0.7);
@@ -212,6 +267,7 @@
 
 /* Responsive styles */
 @media (max-width: 1024px) {
+
   .guesses-table th,
   .guesses-table td {
     padding: 8px 10px;
@@ -232,20 +288,20 @@
   .table-container {
     border-radius: 8px;
   }
-  
+
   .guesses-table th,
   .guesses-table td {
     padding: 6px 6px;
   }
-  
+
   .character-name {
     font-size: 13px;
   }
-  
+
   .character-name-cn {
     font-size: 11px;
   }
-  
+
   .feedback-cell {
     padding: 4px 8px;
     font-size: 13px;
@@ -278,6 +334,7 @@
 .guesses-table.external-tag-mode td:nth-child(5) {
   width: 150px;
 }
+
 .guesses-table.external-tag-mode th:nth-child(6),
 .guesses-table.external-tag-mode td:nth-child(6) {
   width: 200px;
@@ -293,7 +350,7 @@
   overflow-x: auto;
 }
 
-.modified-tag-display > div {
+.modified-tag-display>div {
   line-height: 1.5;
   word-break: break-word;
 }
@@ -463,4 +520,4 @@
 
 .flex-spacer {
   flex: 1;
-} 
+}
