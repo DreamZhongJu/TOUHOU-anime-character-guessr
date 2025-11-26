@@ -22,9 +22,9 @@ function GameEndPopup({ result, answer, onClose }) {
   return (
     <div className="popup-overlay">
       <div className="popup-content">
-        <button className="popup-close" onClick={onClose}><i class="fas fa-xmark"></i></button>
+        <button className="popup-close" onClick={onClose}><i className="fas fa-xmark"></i></button>
         <div className="popup-header">
-          <h2>{result === 'win' ? '🎉 给你猜对了，有点东西' : '😢 已经结束咧'}</h2>
+          <h2>{result === 'win' ? '🎉 占卜成功，灵梦对你点头' : '😢 符卡耗尽，下次再来吧'}</h2>
         </div>
         <div className="popup-body">
           <div className="answer-character">
@@ -55,25 +55,23 @@ function GameEndPopup({ result, answer, onClose }) {
                 </div>
               </div>
 
-              {/* 角色出演作品 */}
               {answer.appearances && answer.appearances.length > 0 && (
                 <div className="answer-appearances">
-                  <h3>出演作品：</h3>
+                  <h3>登场过的幻想作品：</h3>
                   <ul className="appearances-list">
                     {answer.appearances.slice(0, 3).map((appearance, index) => (
                       <li key={index}>{appearance}</li>
                     ))}
                     {answer.appearances.length > 3 && (
-                      <li>...等 {answer.appearances.length} 部作品</li>
+                      <li>……共 {answer.appearances.length} 部作品</li>
                     )}
                   </ul>
                 </div>
               )}
 
-              {/* 角色标签 */}
               {idToTags[answer.id] && idToTags[answer.id].length > 0 && (
                 <div className="answer-tags">
-                  <h3>角色标签：</h3>
+                  <h3>角色符卡标签：</h3>
                   <div className="tags-container">
                     {idToTags[answer.id].map((tag, index) => (
                       <span key={index} className="character-tag">{tag}</span>
@@ -82,10 +80,9 @@ function GameEndPopup({ result, answer, onClose }) {
                 </div>
               )}
 
-              {/* 角色简介 */}
               {answer.summary && (
                 <div className="answer-summary">
-                  <h3>角色简介：</h3>
+                  <h3>角色小传：</h3>
                   <div className="summary-content">{answer.summary}</div>
                 </div>
               )}

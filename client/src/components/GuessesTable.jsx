@@ -1,19 +1,18 @@
 import '../styles/GuessesTable.css';
 
 const ATTRIBUTE_COLUMNS = [
-  { label: '种族', keys: ['种族'] },
+  { label: '族谱', keys: ['种族'] },
   { label: '发色', keys: ['发色'] },
   { label: '发型', keys: ['发型'] },
   { label: '瞳色', keys: ['瞳色'] },
-  { label: '性格', keys: ['性格1', '性格2'] },
-  { label: '身材', keys: ['身材'] },
-  { label: '足着', keys: ['足着'] }
+  { label: '性情', keys: ['性格1', '性格2'] },
+  { label: '身姿', keys: ['身材'] },
+  { label: '足下', keys: ['足着'] }
 ];
 
 const SPLIT_REGEX = /[\/、，,]+/;
 const BLOCKED_TAGS = new Set(['囧仙']);
 
-// 公用拆分函数：把“剧场版/大叔・SUNRISE”这样的字符串切成多个标签
 const splitValue = (value) => {
   if (typeof value !== 'string') return [];
   return value
@@ -23,14 +22,12 @@ const splitValue = (value) => {
 };
 
 function GuessesTable({ guesses, answerCharacter }) {
-  // 优先使用传入的答案（带真实网络标签），否则回退到猜中的那一行
   const answerGuess = (
     Array.isArray(answerCharacter?.networkTags) && answerCharacter.networkTags.length > 0
       ? answerCharacter
       : guesses.find(g => g.isAnswer)
   ) || answerCharacter || {};
 
-  // 兼容几种可能的数据格式：['东方', '同人'] 或 [{ value: '东方' }, ...]
   const normalizeTags = (tags) => {
     if (!Array.isArray(tags)) return [];
     return tags.flatMap(t => {
@@ -40,10 +37,8 @@ function GuessesTable({ guesses, answerCharacter }) {
     }).filter(tag => !BLOCKED_TAGS.has(tag));
   };
 
-  // 答案侧网络标签集合（已拆分）
   const answerNetworkTags = new Set(normalizeTags(answerGuess.networkTags));
 
-  // 答案出场作品集合（已拆分）
   const answerWorkTokens = new Set(
     (answerGuess.touhouWorks || [])
       .flatMap(work => splitValue(work.value))
@@ -79,7 +74,7 @@ function GuessesTable({ guesses, answerCharacter }) {
   };
 
   const renderMetric = (metric, extraClass = '') => {
-    const arrow = metric.trend === 'up' ? '↑' : metric.trend === 'down' ? '↓' : '';
+    const arrow = metric.trend === 'up' ? '↑' : metric.trend === 'down' ? '↓' : '〜';
     const trendClass = metric.trend ? `trend-${metric.trend}` : '';
     return (
       <span className={`metric-value ${extraClass} ${trendClass}`}>
@@ -115,15 +110,15 @@ function GuessesTable({ guesses, answerCharacter }) {
         <thead>
           <tr>
             <th></th>
-            <th>角色</th>
+            <th>幻想乡名册</th>
             {ATTRIBUTE_COLUMNS.map(column => (
               <th key={column.label}>{column.label}</th>
             ))}
-            <th>网络热度</th>
-            <th>作品数</th>
-            <th>最高分</th>
-            <th>最晚登场</th>
-            <th>最早登场</th>
+            <th>红魔热度</th>
+            <th>登场卷数</th>
+            <th>最高评分</th>
+            <th>最近露面</th>
+            <th>初次登场</th>
             <th>出场作品</th>
           </tr>
         </thead>
@@ -138,12 +133,10 @@ function GuessesTable({ guesses, answerCharacter }) {
               ? guess.networkTags.filter(Boolean)
               : [];
 
-            // 猜测角色的标签，拆成 ["东方", "同人", "OVA", ...]
             const netTags = rawNetTags
               .flatMap(tag => splitValue(tag))
               .filter(tag => !BLOCKED_TAGS.has(tag));
 
-            // 和答案角色的标签比对，得到真正重合的集合
             const popularityVal = typeof guess.popularity === 'number' ? guess.popularity : null;
             const workCount = Array.isArray(guess.appearanceIds)
               ? guess.appearanceIds.length
@@ -166,7 +159,6 @@ function GuessesTable({ guesses, answerCharacter }) {
             const metricLatest = buildTrend(latestAppearanceVal, answerLatestAppearance);
             const metricEarliest = buildTrend(earliestAppearanceVal, answerEarliestAppearance);
 
-            // 出场作品逐个标签对比，命中才变色
             const matchedWorkTagSet = new Set(
               workTokens.filter(token => answerWorkTokens.has(token))
             );
@@ -180,7 +172,7 @@ function GuessesTable({ guesses, answerCharacter }) {
                   <div className={`character-name-container ${guess.isAnswer ? 'correct' : ''}`}>
                     {guess.guessrName && (
                       <div className="character-guessr-name" style={{ fontSize: '12px', color: '#888' }}>
-                        猜测者：{guess.guessrName}
+                        猜想巫女：{guess.guessrName}
                       </div>
                     )}
                     <div className="character-name">{guess.name}</div>
@@ -188,7 +180,6 @@ function GuessesTable({ guesses, answerCharacter }) {
                   </div>
                 </td>
 
-                {/* 属性列（保持原来整格变绿的逻辑） */}
                 {ATTRIBUTE_COLUMNS.map(column => {
                   const { tokens, isMatch } = getAttributeDisplay(attrMap, column);
                   const displayTokens = tokens.length > 0 ? tokens : ['未知'];
@@ -208,42 +199,36 @@ function GuessesTable({ guesses, answerCharacter }) {
                   );
                 })}
 
-                {/* 热度 */}
                 <td>
                   <div className="attribute-cell metric-cell">
                     {renderMetric(metricPopularity)}
                   </div>
                 </td>
 
-                {/* 作品数 / 最高分 */}
                 <td>
                   <div className="attribute-cell metric-cell">
                     {renderMetric(metricWorkCount)}
                   </div>
                 </td>
 
-                {/* 最高分 */}
                 <td>
                   <div className="attribute-cell metric-cell">
                     {renderMetric(metricHighestRating, 'rating-chip')}
                   </div>
                 </td>
 
-                {/* 最晚登场 */}
                 <td>
                   <div className="attribute-cell metric-cell">
                     {renderMetric(metricLatest)}
                   </div>
                 </td>
 
-                {/* 最早登场 */}
                 <td>
                   <div className="attribute-cell metric-cell">
                     {renderMetric(metricEarliest)}
                   </div>
                 </td>
 
-                {/* 出场作品：逐个作品比对变色 */}
                 <td>
                   <div className="attribute-cell work-cell">
                     {workTokens.length > 0 ? (

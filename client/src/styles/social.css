@@ -2,21 +2,23 @@
   display: flex;
   align-items: center;
   gap: 15px;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 8px 12px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(4px);
+  background: linear-gradient(135deg, rgba(255, 240, 246, 0.9), rgba(240, 249, 255, 0.9));
+  padding: 10px 14px;
+  border-radius: 14px;
+  box-shadow: 0 12px 24px rgba(12, 22, 58, 0.12);
+  border: 1px solid rgba(127, 146, 200, 0.26);
+  backdrop-filter: blur(6px);
 }
 
 .difficulty-hint {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #666;
+  color: rgba(29, 27, 58, 0.7);
   font-size: 14px;
   margin-right: 5px;
   animation: fadeIn 0.5s ease;
+  font-weight: 700;
 }
 
 .arrow {
@@ -24,7 +26,7 @@
   height: 0;
   border-top: 8px solid transparent;
   border-bottom: 8px solid transparent;
-  border-left: 12px solid #666;
+  border-left: 12px solid #d94d6a;
   animation: bounceRight 1s infinite;
 }
 
@@ -47,8 +49,8 @@
 }
 
 .social-link {
-  color: #1e293b;
-  transition: color 0.2s;
+  color: #1d1b3a;
+  transition: color 0.2s, transform 0.2s;
   font-size: 24px;
   text-decoration: none;
   display: flex;
@@ -60,12 +62,13 @@
 }
 
 .social-link:hover {
-  color: #646cff;
+  color: #d94d6a;
+  transform: translateY(-2px);
 }
 
 .help-button,
 .settings-button {
-  color: #1e293b;
+  color: #1d1b3a;
   transition: all 0.2s;
   font-size: 24px;
   background: none;
@@ -79,8 +82,8 @@
 
 .help-button:hover,
 .settings-button:hover {
-  color: #646cff;
-  transform: scale(1.1);
+  color: #d94d6a;
+  transform: scale(1.08);
 }
 
 .help-button:focus,
@@ -91,16 +94,16 @@
 .bangumi-icon {
   width: 24px;
   height: 24px;
-  border-radius: 50%;
-  transition: transform 0.2s;
+  border-radius: 8px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 8px 16px rgba(12, 22, 58, 0.14);
 }
 
 .social-link:hover .bangumi-icon {
-  transform: scale(1.1);
+  transform: scale(1.08);
 }
 
 .bilibili-icon {
   width: 24px;
   height: 24px;
-  filter: invert(1);
-} 
+}

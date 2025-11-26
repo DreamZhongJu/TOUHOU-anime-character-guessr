@@ -4,19 +4,17 @@ function HelpPopup({ onClose }) {
   return (
     <div className="popup-overlay">
       <div className="popup-content">
-        <button className="popup-close" onClick={onClose}><i class="fas fa-xmark"></i></button>
+        <button className="popup-close" onClick={onClose}><i className="fas fa-xmark"></i></button>
         <div className="popup-header">
-          <h2>为什么我在这里？</h2>
+          <h2>巫女小抄</h2>
         </div>
         <div className="popup-body">
           <div className="help-content">
             <div className="help-text">
-              猜一个神秘动漫角色。搜索角色，然后做出猜测。<br/>
-              每次猜测后，你会获得你猜的角色的信息。<br/>
-              绿色高亮：正确或非常接近；黄色高亮：有点接近。<br/>
-              "↑": 应该往高了猜；"↓": 应该往低了猜<br/>
-              <br/>
-              有bug或者建议？欢迎B站私信我。
+              在幻想乡档案里搜寻一位神秘角色。输入名字或作品即可召唤线索。<br />
+              每次占卜后会显示角色信息对比：绿色为命中，淡黄代表略有交集。<br />
+              ↑ 提示数值应该更高；↓ 提示数值应该更低；〜 表示旗鼓相当。<br />
+              有奇怪的灵异反馈？欢迎去B站或 GitHub 留言，巫女会及时驱邪。<br />
             </div>
           </div>
         </div>
@@ -25,4 +23,4 @@ function HelpPopup({ onClose }) {
   );
 }
 
-export default HelpPopup; 
+export default HelpPopup;
