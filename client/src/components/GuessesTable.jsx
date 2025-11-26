@@ -12,8 +12,33 @@ const ATTRIBUTE_COLUMNS = [
 
 const SPLIT_REGEX = /[\/、，,]+/;
 
+// 公用的拆分函数：把 “剧场版/大叔叉 SUNRISE” 这种切成多个标签
+const splitValue = (value) => {
+  if (typeof value !== 'string') return [];
+  return value
+    .split(SPLIT_REGEX)
+    .map(part => part.trim())
+    .filter(Boolean);
+};
+
 function GuessesTable({ guesses, answerCharacter }) {
-  const answerNetworkTags = Array.isArray(answerCharacter?.networkTags) ? new Set(answerCharacter.networkTags) : new Set();
+  // 1. 先从 guesses 里找到真正的答案行
+  const answerGuess = guesses.find(g => g.isAnswer) || answerCharacter || {};
+
+  // 2. 兼容几种可能的数据格式：['东方', '同人'] 或 [{ value: '东方' }, ...]
+  const normalizeTags = (tags) => {
+    if (!Array.isArray(tags)) return [];
+    return tags.flatMap(t => {
+      if (!t) return [];
+      const v = typeof t === 'string' ? t : t.value;
+      return splitValue(v);
+    });
+  };
+
+  // 3. 得到答案侧的所有标签（已拆分）
+  const answerNetworkTags = new Set(
+    normalizeTags(answerGuess.networkTags)
+  );
 
   const buildAttributeMap = (guess) => {
     const map = {};
@@ -21,14 +46,6 @@ function GuessesTable({ guesses, answerCharacter }) {
       map[attr.key] = attr;
     });
     return map;
-  };
-
-  const splitValue = (value) => {
-    if (typeof value !== 'string') return [];
-    return value
-      .split(SPLIT_REGEX)
-      .map(part => part.trim())
-      .filter(Boolean);
   };
 
   const getAttributeDisplay = (attrMap, column) => {
@@ -64,9 +81,26 @@ function GuessesTable({ guesses, answerCharacter }) {
         <tbody>
           {guesses.map((guess, guessIndex) => {
             const attrMap = buildAttributeMap(guess);
-            const workTokens = (guess.touhouWorks || []).map(work => work.value).filter(v => v && v !== '未知');
-            const netTags = Array.isArray(guess.networkTags) ? guess.networkTags.filter(Boolean) : [];
-            const hasSharedNetTag = netTags.some(tag => answerNetworkTags.has(tag));
+            const workTokens = (guess.touhouWorks || [])
+              .map(work => work.value)
+              .filter(v => v && v !== '未知');
+
+            const rawNetTags = Array.isArray(guess.networkTags)
+              ? guess.networkTags.filter(Boolean)
+              : [];
+
+            // 猜测角色的标签，一样拆成 ["东方", "同人", "OVA", ...]
+            const netTags = rawNetTags.flatMap(tag => splitValue(tag));
+
+            // 和答案角色的标签比对，得到真正重合的集合
+            const matchedNetTagSet = new Set(
+              netTags.filter(tag => answerNetworkTags.has(tag))
+            );
+            console.log('answerCharacter', answerCharacter);
+            console.log('answerCharacter.networkTags', answerCharacter?.networkTags);
+            console.log('answerNetworkTags', Array.from(answerNetworkTags));
+            console.log('netTags', netTags);
+            console.log('matchedNetTagSet', Array.from(matchedNetTagSet));
             return (
               <tr key={guessIndex}>
                 <td>
@@ -75,12 +109,16 @@ function GuessesTable({ guesses, answerCharacter }) {
                 <td>
                   <div className={`character-name-container ${guess.isAnswer ? 'correct' : ''}`}>
                     {guess.guessrName && (
-                      <div className="character-guessr-name" style={{ fontSize: '12px', color: '#888' }}>猜测者：{guess.guessrName}</div>
+                      <div className="character-guessr-name" style={{ fontSize: '12px', color: '#888' }}>
+                        猜测者：{guess.guessrName}
+                      </div>
                     )}
                     <div className="character-name">{guess.name}</div>
                     <div className="character-name-cn">{guess.nameCn}</div>
                   </div>
                 </td>
+
+                {/* 属性列（保持原来整格变绿的逻辑） */}
                 {ATTRIBUTE_COLUMNS.map(column => {
                   const { tokens, isMatch } = getAttributeDisplay(attrMap, column);
                   const displayTokens = tokens.length > 0 ? tokens : ['未知'];
@@ -99,11 +137,16 @@ function GuessesTable({ guesses, answerCharacter }) {
                     </td>
                   );
                 })}
+
+                {/* 网络标签：按单个标签变色 */}
                 <td>
-                  <div className={`attribute-cell ${hasSharedNetTag ? 'match' : ''}`}>
+                  <div className="attribute-cell">
                     {netTags.length > 0 ? (
                       netTags.map((tag, idx) => (
-                        <span key={`${tag}-${idx}`} className="attribute-token">
+                        <span
+                          key={`${tag}-${idx}`}
+                          className={`attribute-token ${matchedNetTagSet.has(tag) ? 'match' : ''}`}
+                        >
                           {tag}
                         </span>
                       ))
@@ -112,6 +155,8 @@ function GuessesTable({ guesses, answerCharacter }) {
                     )}
                   </div>
                 </td>
+
+                {/* 出场作品（你现在是整格 match，如果要按作品级别变色也可以用同样思路改） */}
                 <td>
                   <div className="work-info">
                     <div className="shared-work-tag">
