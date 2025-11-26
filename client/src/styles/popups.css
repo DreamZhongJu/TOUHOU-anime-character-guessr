@@ -31,6 +31,18 @@
   overflow: hidden;
 }
 
+.touhou-overlay-banner {
+  position: relative;
+  margin: -6px -6px 12px -6px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(120, 127, 140, 0.08);
+  color: #7a1030;
+  font-weight: 700;
+  text-align: center;
+  border: 1px dashed rgba(122, 16, 48, 0.25);
+}
+
 .popup-close {
   position: absolute;
   top: 16px;
@@ -1276,4 +1288,15 @@
   display: flex;
   gap: 12px;
   margin-bottom: 12px;
+}
+
+/* Override popup button text color to be更显眼 */
+.popup-content button,
+.popup-content .preset-button,
+.popup-content .preset-button-export,
+.popup-content .preset-button-import,
+.popup-content .start-game-button,
+.popup-content .manual-mode-button,
+.popup-content .join-button {
+  color: #7a1030 !important;
 }

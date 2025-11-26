@@ -154,6 +154,9 @@ const GameSettingsDisplay = ({
 
   return (
     <div className="game-settings-display">
+      <div className="touhou-overlay-banner">
+        东方模式下，原版规则不可用，敬请留意
+      </div>
       <div 
         className={`settings-display-header ${collapsible ? 'collapsible' : ''}`}
         onClick={toggleExpand}

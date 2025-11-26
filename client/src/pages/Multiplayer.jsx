@@ -573,7 +573,7 @@ const Multiplayer = () => {
       let hintTexts = [];
       if (Array.isArray(gameSettings.useHints) && gameSettings.useHints.length > 0 && character.summary) {
         const sentences = character.summary.replace('[mask]', '').replace('[/mask]', '')
-          .split(/[?????,????\"!?]/).filter(s => s.trim());
+          .split(/[。？！、，,「」“”"!?]/).filter(s => s.trim());
         if (sentences.length > 0) {
           const selectedIndices = new Set();
           while (selectedIndices.size < Math.min(gameSettings.useHints.length, sentences.length)) {
@@ -758,8 +758,6 @@ const Multiplayer = () => {
             {/* Only show quick-join if not joined and is host, use same style as '创建' */}
             {error && <p className="error-message">{error}</p>}
           </div>
-          <Roulette />
-          <Leaderboard />
         </>
       ) : (
         <>
