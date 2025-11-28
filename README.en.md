@@ -1,21 +1,33 @@
-[中文](README.md) | [English](README.en.md)
+[English](README.en.md) | [中文](README.md)
 
-## 📖 Overview
-- Touhou-themed rework of Anime Character Guessr, for entertainment only; no commercial use.
-- Inspired by [BLAST.tv](https://blast.tv/counter-strike); data comes from [Bangumi](https://bgm.tv/) plus localization/enrichment from the Touhou community—big thanks to the Touhou friends who shared it.
-- Best experienced on a desktop browser.
+## Overview
+- This is an **unofficial, Touhou-themed derivative** of Anime Character Guessr, for fun only (no commercial use).
+- Inspired by [BLAST.tv](https://blast.tv/counter-strikle). Data is primarily from [Bangumi](https://bgm.tv/) plus Touhou community contributions. Special thanks to Touhou community friends for localization data.
+- Desktop browsers are recommended for the best experience.
 
-## 📦 Run
+## Getting Started
 
-### 1) Local npm
-Run in both `client` and `server`:
+### Prerequisites
+- Node.js 18+ (ideally the version implied by the repo `package-lock.json`)
+- npm
+- MongoDB accessible by the server (local or remote)
+
+### 1) Local (npm)
+Install and run client and server separately:
 ```bash
+cd client
 npm install
-npm run dev
+npm run dev   # defaults to http://localhost:5173
+
+# new terminal
+cd ../server
+npm install
+npm run start # defaults to http://localhost:3000
 ```
+If needed, copy `.env.example` to `.env` in each directory and fill in `MONGODB_URI`, `SERVER_URL`, `CLIENT_URL`, etc.
 
 ### 2) Docker
-Create `.env` in project root:
+Create `.env` in the project root:
 ```env
 DOMAIN_NAME=http://[your IP]
 MONGODB_URI=mongodb://mongo:27017/tags
@@ -29,16 +41,24 @@ Start:
 ```bash
 docker-compose up --build
 ```
-Stop and remove:
+Stop and remove containers:
 ```bash
 docker-compose down
 ```
 
-## 🎮 How to Play
-- Search and guess the hidden character; each guess returns feedback.
+### 3) Helper Script (optional)
+- `client/scripts/checkSearchCoverage.mjs`: batch-check whether all local Touhou characters can be returned by the Bangumi search API and pass local filtering.
+  ```bash
+  cd client
+  node scripts/checkSearchCoverage.mjs
+  ```
+  It prints per-character progress and summary statistics.
+
+## Gameplay
+- Search and guess the mystery character; each guess returns feedback.
 - Green: correct or very close; Yellow: somewhat close.
 - “↑” guess higher; “↓” guess lower.
 
-## 🙏 Thanks
-- Thanks to the Touhou community friends for providing localization and data support.
-- Thanks to the original project and all contributors.
+## Acknowledgements
+- Thanks to Touhou community friends for localization and data support.
+- Thanks to the original project and all contributors. 
