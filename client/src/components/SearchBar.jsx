@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import axios from '../utils/cached-axios';
 import { searchSubjects, getCharactersBySubjectId, getCharacterDetails } from '../utils/bangumi';
+import { findTouhouProfileByCharacter } from '../utils/touhouDataset';
 import '../styles/search.css';
 import { submitGuessCharacterCount } from '../utils/db';
 
@@ -15,15 +16,18 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [selectedItemIndex, setSelectedItemIndex] = useState(-1); // 当前键盘选中的项目索引
   const [isLoadingNewResults, setIsLoadingNewResults] = useState(false); // 标记是否正在加载更多结果
-  
+
   // DOM引用
   const searchContainerRef = useRef(null);
   const searchInputRef = useRef(null);
   const searchDropdownRef = useRef(null);
   const selectedItemRef = useRef(null);
-  
+
   const INITIAL_LIMIT = 10;
   const MORE_LIMIT = 5;
+  const isInLocalDataset = (character) => !!findTouhouProfileByCharacter(character);
+  const filterByLocalDataset = (characters = []) =>
+    characters.filter(isInLocalDataset);
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -46,13 +50,13 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
   useEffect(() => {
     function handleKeyDown(e) {
       // 当用户按下空格键且不在输入框中时，聚焦到搜索输入框
-      if (e.key === ' ' && document.activeElement.tagName !== 'INPUT' && 
-          document.activeElement.tagName !== 'TEXTAREA' && !isGuessing && !gameEnd) {
+      if (e.key === ' ' && document.activeElement.tagName !== 'INPUT' &&
+        document.activeElement.tagName !== 'TEXTAREA' && !isGuessing && !gameEnd) {
         e.preventDefault();
         searchInputRef.current.focus();
       }
     }
-    
+
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
@@ -63,7 +67,7 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
   useEffect(() => {
     if (selectedItemIndex >= 0 && selectedItemRef.current) {
       selectedItemRef.current.scrollIntoView({
-        behavior: 'smooth', 
+        behavior: 'smooth',
         block: 'nearest'
       });
     }
@@ -81,7 +85,7 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
         case 'ArrowDown':
           e.preventDefault();
           setSelectedItemIndex(prevIndex => {
-            const maxIndex = searchMode === 'character' && hasMore ? 
+            const maxIndex = searchMode === 'character' && hasMore ?
               searchResults.length : searchResults.length - 1;
             // 不再循环到顶部，如果已经到底部就保持在底部
             return prevIndex < maxIndex ? prevIndex + 1 : maxIndex;
@@ -89,7 +93,7 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
           break;
         case 'ArrowUp':
           e.preventDefault();
-          setSelectedItemIndex(prevIndex => 
+          setSelectedItemIndex(prevIndex =>
             // 不再循环到底部，如果已经到顶部就保持在顶部
             prevIndex > 0 ? prevIndex - 1 : 0);
           break;
@@ -98,7 +102,7 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
           if (selectedItemIndex === -1) {
             return;
           }
-          
+
           if (searchMode === 'subject' && !selectedSubject) {
             // 如果在作品搜索模式且选择的是作品
             if (selectedItemIndex < searchResults.length) {
@@ -159,7 +163,7 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
   // Debounced search function for character search only
   useEffect(() => {
     if (searchMode !== 'character') return;
-    
+
     const timeoutId = setTimeout(() => {
       if (searchQuery.trim()) {
         setOffset(0);
@@ -177,12 +181,12 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
 
   const handleSearch = async (reset = false) => {
     if (!searchQuery.trim()) return;
-    
+
     // Always use initial search parameters when reset is true
     const currentLimit = reset ? INITIAL_LIMIT : MORE_LIMIT;
     const currentOffset = reset ? 0 : offset;
     const loadingState = reset ? setIsSearching : setIsLoadingMore;
-    
+
     loadingState(true);
     try {
       const response = await axios.post(
@@ -191,12 +195,13 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
           keyword: searchQuery.trim()
         }
       );
-      
-      const newResults = response.data.data.map(character => ({
+
+      const apiResults = Array.isArray(response?.data?.data) ? response.data.data : [];
+      const mappedResults = apiResults.map(character => ({
         id: character.id,
         image: character.images?.grid || null,
         name: character.name,
-        nameCn: character.infobox.find(item => item.key === "简体中文名")?.value || character.name,
+        nameCn: character.infobox.find(item => item.key === '简体中文名')?.value || character.name,
         nameEn: (() => {
           const aliases = character.infobox.find(item => item.key === '别名')?.value;
           if (aliases && Array.isArray(aliases)) {
@@ -213,18 +218,19 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
           return character.name;
         })(),
         gender: character.gender || '?',
-        popularity: character.stat.collects+character.stat.comments
+        popularity: character.stat.collects + character.stat.comments
       }));
+      const filteredResults = filterByLocalDataset(mappedResults);
 
       if (reset) {
-        setSearchResults(newResults);
+        setSearchResults(filteredResults);
         setOffset(INITIAL_LIMIT);
       } else {
-        setSearchResults(prev => [...prev, ...newResults]);
+        setSearchResults(prev => [...prev, ...filteredResults]);
         setOffset(currentOffset + MORE_LIMIT);
       }
-      
-      setHasMore(newResults.length === currentLimit);
+
+      setHasMore(apiResults.length === currentLimit);
     } catch (error) {
       console.error('Search failed:', error);
       if (reset) {
@@ -266,7 +272,8 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
           popularity: details.popularity
         };
       }));
-      setSearchResults(formattedCharacters);
+      const filteredCharacters = filterByLocalDataset(formattedCharacters);
+      setSearchResults(filteredCharacters);
     } catch (error) {
       console.error('Failed to fetch characters:', error);
       setSearchResults([]);
@@ -309,9 +316,9 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
                 ref={selectedItemIndex === index ? selectedItemRef : null}
               >
                 {subject.image ? (
-                  <img 
-                    src={subject.image} 
-                    alt={subject.name} 
+                  <img
+                    src={subject.image}
+                    alt={subject.name}
                     className="result-character-icon"
                   />
                 ) : (
@@ -336,7 +343,7 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
         {selectedSubject && (
           <div className="selected-subject-header">
             <span>{selectedSubject.name_cn || selectedSubject.name}</span>
-            <button 
+            <button
               className="back-to-subjects"
               onClick={() => {
                 setSelectedSubject(null);
@@ -359,9 +366,9 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
                 ref={selectedItemIndex === index ? selectedItemRef : null}
               >
                 {character.image ? (
-                  <img 
-                    src={character.image} 
-                    alt={character.name} 
+                  <img
+                    src={character.image}
+                    alt={character.name}
                     className="result-character-icon"
                   />
                 ) : (
@@ -376,7 +383,7 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
               </div>
             ))}
             {hasMore && searchMode === 'character' && (
-              <div 
+              <div
                 className={`search-result-item load-more ${selectedItemIndex === searchResults.length ? 'selected' : ''}`}
                 onClick={handleLoadMore}
                 ref={selectedItemIndex === searchResults.length ? selectedItemRef : null}
@@ -405,7 +412,7 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
           />
           {renderSearchResults()}
         </div>
-        <button 
+        <button
           className={`search-button ${searchMode === 'character' ? 'active' : ''}`}
           onClick={() => {
             setSearchMode('character');
@@ -416,7 +423,7 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
           {isSearching && searchMode === 'character' ? '结界查询中…' : isGuessing ? '符卡判定中…' : '搜角色'}
         </button>
         {subjectSearch && (
-          <button 
+          <button
             className={`search-button ${searchMode === 'subject' ? 'active' : ''}`}
             onClick={() => {
               setSearchMode('subject');
