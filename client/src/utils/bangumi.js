@@ -1,11 +1,66 @@
-import axios from './cached-axios.js';
 import { idToTags } from '../data/id_tags.js';
 import { subjectsWithExtraTags } from '../data/extra_tag_subjects.js';
 import touhouCharacters from '../data/touhouCharacters.json';
+import touhouRemoteTags from '../data/touhou_remote_tags.json';
+import characterSubjectsData from '../data/touhou_character_subjects.json';
+import characterPersonsData from '../data/touhou_character_persons.json';
+import subjectDetailsData from '../data/touhou_subjects.json';
 import { ATTRIBUTE_DEFINITIONS, getSharedWorks, enrichWithTouhouData } from './touhouDataset.js';
 
-const API_BASE_URL = 'https://api.bgm.tv';
 const TOUHOU_NAME_KEY = '角色';
+const LOCAL_CHARACTERS = Array.isArray(touhouRemoteTags?.data) ? touhouRemoteTags.data : [];
+const SUBJECT_DETAIL_MAP = new Map((subjectDetailsData?.data || []).map((entry) => [Number(entry.id), entry]));
+const CHARACTER_SUBJECT_MAP = new Map(
+  (characterSubjectsData?.data || []).map((entry) => [Number(entry.characterId), entry.subjects || []])
+);
+const CHARACTER_PERSONS_MAP = new Map(
+  (characterPersonsData?.data || []).map((entry) => [Number(entry.characterId), entry.persons || []])
+);
+const SUBJECT_TO_CHARACTER_MAP = buildSubjectCharacterMap();
+
+function normalizeName(name) {
+  if (!name) return '';
+  return String(name)
+    .replace(/[`'\"·\\?\\s]/g, '')
+    .replace(/[（）()]/g, '')
+    .toLowerCase();
+}
+
+function buildSubjectCharacterMap() {
+  const map = new Map();
+  LOCAL_CHARACTERS.forEach((entry) => {
+    const charId = Number(entry.remoteId);
+    const subjects = CHARACTER_SUBJECT_MAP.get(charId) || [];
+    subjects.forEach((subject) => {
+      const sid = Number(subject.id);
+      if (!map.has(sid)) {
+        map.set(sid, []);
+      }
+      map.get(sid).push({
+        id: charId,
+        name: entry.remoteName || entry.remoteNameCn || entry.localName || '',
+        relation: subject.staff || '配角',
+        images: { grid: getLocalImage(charId) }
+      });
+    });
+  });
+  return map;
+}
+
+function getLocalCharacterEntry(id) {
+  return LOCAL_CHARACTERS.find((entry) => Number(entry.remoteId) === Number(id)) || null;
+}
+
+function getLocalImage(id) {
+  return `/assets/touhou_characters/${id}.jpg`;
+}
+
+function getSubjectYear(detail) {
+  const date = detail?.date;
+  if (!date) return null;
+  const year = parseInt(String(date).split('-')[0], 10);
+  return Number.isFinite(year) ? year : null;
+}
 
 function getRandomTouhouEntry() {
   if (!Array.isArray(touhouCharacters) || touhouCharacters.length === 0) return null;
@@ -14,364 +69,123 @@ function getRandomTouhouEntry() {
 
 async function searchCharacterByKeyword(keyword) {
   if (!keyword || typeof keyword !== 'string') return null;
-  const response = await axios.post(`${API_BASE_URL}/v0/search/characters?limit=1&offset=0`, {
-    keyword: keyword.trim()
+  const normalized = normalizeName(keyword);
+  const candidate = LOCAL_CHARACTERS.find((entry) => {
+    const names = [
+      entry.localName,
+      entry.remoteName,
+      entry.remoteNameCn
+    ];
+    return names.some((n) => normalizeName(n) === normalized);
   });
-  return response?.data?.data?.[0] || null;
+  if (candidate) {
+    return {
+      id: Number(candidate.remoteId),
+      name: candidate.remoteName,
+      nameCn: candidate.remoteNameCn
+    };
+  }
+  return null;
 }
 
-function buildCharacterFromRemote(remote, keyword = '') {
-  if (!remote) return null;
-
-  const nameCn = remote.infobox?.find(item => item.key === '简体中文名')?.value || remote.name || keyword;
-  const aliases = remote.infobox?.find(item => item.key === '别名')?.value;
-  let nameEn = keyword;
-  if (aliases && Array.isArray(aliases)) {
-    const englishName = aliases.find(alias => alias.k === '英文名');
-    if (englishName) {
-      nameEn = englishName.v;
-    } else {
-      const romaji = aliases.find(alias => alias.k === '罗马名');
-      if (romaji) {
-        nameEn = romaji.v;
-      }
-    }
-  }
+function buildCharacterFromEntry(entry) {
+  if (!entry) return null;
+  const id = Number(entry.remoteId);
+  const metaTags = Array.isArray(entry.metaTags)
+    ? entry.metaTags.map((tag) => tag.name || tag).filter(Boolean)
+    : [];
 
   return {
-    id: remote.id,
-    name: remote.name || keyword || '未知',
-    nameCn,
-    nameEn: nameEn || remote.name || keyword || '未知',
-    gender: typeof remote.gender === 'string' ? remote.gender : '?',
-    image: remote.images?.medium || remote.images?.grid || '',
-    imageGrid: remote.images?.grid || remote.images?.medium || '',
-    summary: remote.summary || '',
+    id,
+    name: entry.remoteName || entry.localName || '未知',
+    nameCn: entry.remoteNameCn || entry.remoteName || entry.localName || '未知',
+    nameEn: entry.remoteName || entry.localName || '未知',
+    gender: '?',
+    image: getLocalImage(id),
+    imageGrid: getLocalImage(id),
+    summary: '',
     appearances: [],
     appearanceIds: [],
     latestAppearance: -1,
     earliestAppearance: -1,
     highestRating: -1,
-    popularity: remote.stat ? (remote.stat.collects + remote.stat.comments) : 0,
+    popularity: 0,
     rawTags: new Map(),
     animeVAs: [],
-    metaTags: idToTags[remote.id] || []
+    metaTags: idToTags[id] || metaTags
   };
 }
 
 async function getSubjectDetails(subjectId) {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/v0/subjects/${subjectId}`);
-
-    if (!response.data) {
-      throw new Error('No subject details found');
-    }
-    // Get air date and current date
-    const airDate = response.data.date;
-    const currentDate = new Date();
-    
-    // If air date is in the future, return null to indicate this show should be ignored
-    if (airDate && new Date(airDate) > currentDate) {
-      return null;
-    }
-    else if (response.data.locked) {
-      return null;
-    }
-
-    let year = airDate ? parseInt(airDate.split('-')[0]) : null;
-    
-    // Extract meta tags and add animation studios
-    // const persons = [];
-    // const animationStudio = response.data.infobox?.find(item => item.key === '动画制作')?.value;
-    // if (animationStudio && animationStudio.length < 50) {
-    //   // Split by both '×' and '/' and trim whitespace from each studio
-    //   const studioSplit = animationStudio.split(/[×/()、（）\[\]]/).map(studio => studio.trim()).filter(studio => studio.length < 30 && studio.length > 0);
-    //   persons.push(...studioSplit);
-    // }
-
-    // const publisher = response.data.infobox?.find(item => item.key === '发行')?.value;
-    // if (publisher && publisher.length < 50) {
-    //   const studioTrim = publisher.split(/[×/()、（）\[\]]/)[0].trim();
-    //   persons.push(studioTrim);
-    // }
-    
-    const tags = [];
-    if (response.data.type === 2) {
-      response.data.tags
-        .filter(tag => !tag.name.includes('20'))
-        .forEach(tag => tags.push({ [tag.name]: tag.count }));
-    }
-    if (response.data.type === 4) {
-      response.data.tags
-        .filter(tag => !tag.name.includes('20'))
-        .forEach(tag => tags.push({ [tag.name]: tag.count }));
-    }
-
-    return {
-      name: response.data.name_cn || response.data.name,
-      year,
-      tags,
-      raw_tags: response.data.tags,
-      meta_tags: response.data.meta_tags,
-      rating: response.data.rating?.score || 0,
-      rating_count: response.data.rating?.total || 0
-    };
-  } catch (error) {
-    console.error('Error fetching subject details:', error);
-    throw error;
+  const detail = SUBJECT_DETAIL_MAP.get(Number(subjectId));
+  if (!detail) {
+    return null;
   }
+  const year = getSubjectYear(detail);
+  const tags = Array.isArray(detail.tags)
+    ? detail.tags
+        .filter((tag) => !String(tag.name || '').includes('20'))
+        .map((tag) => ({ [tag.name]: tag.count }))
+    : [];
+  return {
+    name: detail.name_cn || detail.name,
+    year,
+    tags,
+    raw_tags: detail.tags || [],
+    meta_tags: detail.meta_tags || [],
+    rating: detail.rating?.score || 0,
+    rating_count: detail.rating?.total || 0
+  };
 }
 
-async function getCharacterAppearances(characterId, gameSettings) {
-  try {
-    const [subjectsResponse, personsResponse] = await Promise.all([
-      axios.get(`${API_BASE_URL}/v0/characters/${characterId}/subjects`),
-      axios.get(`${API_BASE_URL}/v0/characters/${characterId}/persons`)
-    ]);
+async function getCharacterAppearances(characterId, gameSettings = {}) {
+  const subjects = CHARACTER_SUBJECT_MAP.get(Number(characterId)) || [];
+  const persons = CHARACTER_PERSONS_MAP.get(Number(characterId)) || [];
+  const settings = {
+    includeGame: false,
+    metaTags: [],
+    commonTags: true,
+    subjectTagNum: 6,
+    characterTagNum: 6,
+    ...gameSettings
+  };
 
-    if (!subjectsResponse.data || !subjectsResponse.data.length) {
-      return {
-        appearances: [],
-        appearanceIds: [],
-        latestAppearance: -1,
-        earliestAppearance: -1,
-        highestRating: 0,
-        rawTags: new Map(),
-        metaTags: []
-      };
-    }
-
-    let filteredAppearances;
-    if (gameSettings.includeGame) {
-      filteredAppearances = subjectsResponse.data.filter(appearance => 
-        (appearance.staff === '主角' || appearance.staff === '配角')
-        && (appearance.type === 2 || appearance.type === 4)
-      );
-    }
-    else {
-      filteredAppearances = subjectsResponse.data.filter(appearance => 
-        (appearance.staff === '主角' || appearance.staff === '配角')
-        && (appearance.type === 2 || subjectsWithExtraTags.has(appearance.id))
-      );
-      if (filteredAppearances.length === 0) {
-        filteredAppearances = subjectsResponse.data.filter(appearance => 
-          (appearance.staff === '主角' || appearance.staff === '配角')
-          && (appearance.type === 4)
-        );
-      }
-    }
-    if (filteredAppearances.length === 0) {
-      return {
-        appearances: [],
-        appearanceIds: [],
-        latestAppearance: -1,
-        earliestAppearance: -1,
-        highestRating: -1,
-        rawTags: new Map(),
-        metaTags: []
-      };
-    }
-
-    let latestAppearance = -1;
-    let earliestAppearance = -1;
-    let highestRating = -1;
-    const sourceTagMap = new Map([
-      ['GAL改', '游戏改'],
-      ['轻小说改', '小说改'],
-      ['轻改', '小说改'],
-      ['原创动画', '原创'],
-      ['网文改', '小说改'],
-      ['漫改', '漫画改'],
-      ['漫画改编', '漫画改'],
-      ['游戏改编', '游戏改'],
-      ['小说改编', '小说改']
-    ]);
-    const sourceTagSet = new Set(['原创', '游戏改', '小说改', '漫画改']);
-    const regionTagSet = new Set(['日本', '欧美', '美国', '中国', '法国', '韩国', '英国', '俄罗斯', '中国香港', '苏联', '捷克', '中国台湾', '马来西亚']);
-    const sourceTagCounts = new Map();
-    const regionTags = new Set();
-    const tagCounts = new Map(); // Track cumulative counts for each tag
-    const metaTagCounts = new Map(); // Track cumulative counts for each meta tag
-    const allMetaTags = new Set();
-    const rawTags = new Map();
-    const networkTagsSet = new Set();
-
-    // Get just the names and collect meta tags
-    const appearances = await Promise.all(
-      filteredAppearances.map(async appearance => {
-        try {
-          const stuffFactor = appearance.staff === '主角' ? 3 : 1;
-          const details = await getSubjectDetails(appearance.id);
-          if (!details || details.year === null) return null;
-
-          if (!gameSettings.metaTags.filter(tag => tag !== '').every(tag => details.meta_tags.includes(tag))){
-            return null;
-          }
-
-          if (latestAppearance === -1 || details.year > latestAppearance) {
-            latestAppearance = details.year;
-          }
-          if (earliestAppearance === -1 || details.year < earliestAppearance) {
-            earliestAppearance = details.year;
-          }
-          if (details.rating > highestRating) {
-            highestRating = details.rating;
-          }
-
-          if (gameSettings.commonTags) {
-            details.raw_tags.forEach(tag => {
-              if (sourceTagSet.has(tag.name)) {
-                sourceTagCounts.set(tag.name, (sourceTagCounts.get(tag.name) || 0) + stuffFactor*tag.count);
-              }
-              else if (sourceTagMap.has(tag.name)) {
-                const mappedTag = sourceTagMap.get(tag.name);
-                sourceTagCounts.set(mappedTag, (sourceTagCounts.get(mappedTag) || 0) + stuffFactor*tag.count);
-              }
-              else{
-                rawTags.set(tag.name, (rawTags.get(tag.name) || 0) + stuffFactor*tag.count);
-                networkTagsSet.add(tag.name);
-              }
-            });
-          }
-          else{
-            details.meta_tags.forEach(tag => {
-              if (sourceTagSet.has(tag)) {
-                return;
-              }
-              else if (regionTagSet.has(tag)) {
-                regionTags.add(tag);
-              }
-              else {
-                metaTagCounts.set(tag, (metaTagCounts.get(tag) || 0) + (tagCounts.get(tag) || stuffFactor));
-                networkTagsSet.add(tag);
-              }
-            });
-
-            details.tags.forEach(tagObj => {
-              const [[name, count]] = Object.entries(tagObj);
-              if (sourceTagSet.has(name)) {
-                sourceTagCounts.set(name, (sourceTagCounts.get(name) || 0) + count*stuffFactor);
-              }
-              else if (regionTagSet.has(name)) {
-                regionTags.add(name);
-              }
-              else if (sourceTagMap.has(name)) {
-                const mappedTag = sourceTagMap.get(name);
-                sourceTagCounts.set(mappedTag, (sourceTagCounts.get(mappedTag) || 0) + count*stuffFactor);
-              }
-              else if (regionTags.has(name)) {
-                return;
-              }
-              else {
-                tagCounts.set(name, (tagCounts.get(name) || 0) + count*stuffFactor);
-                networkTagsSet.add(name);
-              }
-            });
-          }
-
-          return {
-            id: appearance.id,
-            name: details.name,
-            rating_count: details.rating_count
-          };
-
-        } catch (error) {
-          console.error(`Failed to get details for subject ${appearance.id}:`, error);
-          return null;
-        }
-      })
-    );
-
-    let sortedRawTags;
-    let sortedSourceTags;
-    let sortedTags;
-    let sortedMetaTags;
-    let networkTags = [];
-    if (gameSettings.commonTags){
-      sortedSourceTags = Array.from(sourceTagCounts.entries())
-        .map(([name, count]) => ({ [name]: count }))
-        .sort((a, b) => Object.values(b)[0] - Object.values(a)[0]);
-      if (sortedSourceTags.length > 0) {
-        const topSourceTag = Object.entries(sortedSourceTags[0])[0];
-        rawTags.set(topSourceTag[0], (rawTags.get(topSourceTag[0]) || 0) + topSourceTag[1]);
-      }
-      const sortedEntries = [...rawTags.entries()].filter(entry => !entry[0].includes('20')).sort((a, b) => b[1] - a[1]);
-      const maxCount = sortedEntries.length > 0 ? sortedEntries[0][1] : 0;
-      const threshold = maxCount * 0.1;
-      let cutoffIndex = sortedEntries.findIndex(entry => entry[1] < threshold);
-      sortedRawTags = new Map(sortedEntries.slice(0, Math.max(cutoffIndex, gameSettings.subjectTagNum)));
-      networkTags = Array.from(sortedRawTags.keys());
-    }
-    else{
-      sortedSourceTags = Array.from(sourceTagCounts.entries())
-        .map(([name, count]) => ({ [name]: count }))
-        .sort((a, b) => Object.values(b)[0] - Object.values(a)[0]);
-
-      sortedTags = Array.from(tagCounts.entries())
-        .map(([name, count]) => ({ [name]: count }))
-        .sort((a, b) => Object.values(b)[0] - Object.values(a)[0]);
-
-      sortedMetaTags = Array.from(metaTagCounts.entries())
-        .map(([name, count]) => ({ [name]: count }))
-        .sort((a, b) => Object.values(b)[0] - Object.values(a)[0]);
-
-      // Only add one source tag to avoid confusion
-      if (sortedSourceTags.length > 0) {
-        allMetaTags.add(Object.keys(sortedSourceTags[0])[0]);
-      }
-      for (const tagObj of sortedMetaTags) {
-        if (allMetaTags.size >= gameSettings.subjectTagNum) break;
-        allMetaTags.add(Object.keys(tagObj)[0]);
-      }
-      for (const tagObj of sortedTags) {
-        if (allMetaTags.size >= gameSettings.subjectTagNum) break;
-        allMetaTags.add(Object.keys(tagObj)[0]);
-      }
-      if (idToTags && idToTags[characterId]) {
-        idToTags[characterId].slice(0, Math.min(gameSettings.characterTagNum, idToTags[characterId].length)).forEach(tag => allMetaTags.add(tag));
-      }
-      regionTags.forEach(tag => allMetaTags.add(tag));
-      // 网络标签仅包含远程返回的 tags/meta_tags
-      networkTags = Array.from(networkTagsSet);
-    }
-
-    const appearanceNames = [];
-    const appearanceIds = [];
-    
-    appearances.filter(appearance => appearance !== null)
-      .sort((a, b) => b.rating_count - a.rating_count)
-      .forEach(appearance => {
-        appearanceNames.push(appearance.name);
-        appearanceIds.push(appearance.id);
-      });
-
-    const animeVAs = new Set();
-    if (characterId === 56822 || characterId === 56823 || characterId === 17529 || characterId === 10956) {
-      allMetaTags.add('展开');
-      animeVAs.add('展开');
-    }
-    else if (personsResponse.data && personsResponse.data.length) {
-      const persons = personsResponse.data.filter(person => person.subject_type === 2 || person.subject_type === 4);
-      if (persons.length > 0) {
-        persons.forEach(person => {
-          allMetaTags.add(`${person.name}`);
-          animeVAs.add(person.name);
-        });
-      }
-    }
+  if (!subjects.length) {
     return {
-      appearances: appearanceNames,
-      appearanceIds: appearanceIds,
-      latestAppearance,
-      earliestAppearance,
-      highestRating,
-      rawTags: sortedRawTags || new Map(),
-      animeVAs: Array.from(animeVAs),
-      metaTags: Array.from(allMetaTags),
-      networkTags
+      appearances: [],
+      appearanceIds: [],
+      latestAppearance: -1,
+      earliestAppearance: -1,
+      highestRating: 0,
+      rawTags: new Map(),
+      metaTags: [],
+      networkTags: [],
+      animeVAs: []
     };
-  } catch (error) {
-    console.error('Error fetching character appearances:', error);
+  }
+
+  let filteredAppearances;
+  if (settings.includeGame) {
+    filteredAppearances = subjects.filter(
+      (appearance) =>
+        (appearance.staff === '主角' || appearance.staff === '配角') &&
+        (appearance.type === 2 || appearance.type === 4)
+    );
+  } else {
+    filteredAppearances = subjects.filter(
+      (appearance) =>
+        (appearance.staff === '主角' || appearance.staff === '配角') &&
+        (appearance.type === 2 || subjectsWithExtraTags.has(appearance.id))
+    );
+    if (filteredAppearances.length === 0) {
+      filteredAppearances = subjects.filter(
+        (appearance) =>
+          (appearance.staff === '主角' || appearance.staff === '配角') && appearance.type === 4
+      );
+    }
+  }
+
+  if (filteredAppearances.length === 0) {
     return {
       appearances: [],
       appearanceIds: [],
@@ -379,264 +193,362 @@ async function getCharacterAppearances(characterId, gameSettings) {
       earliestAppearance: -1,
       highestRating: -1,
       rawTags: new Map(),
-      animeVAs: [],
       metaTags: [],
-      networkTags: []
+      networkTags: [],
+      animeVAs: []
     };
   }
+
+  let latestAppearance = -1;
+  let earliestAppearance = -1;
+  let highestRating = -1;
+  const sourceTagMap = new Map([
+    ['GAL', '游戏'],
+    ['轻小说改', '小说'],
+    ['轻改', '小说'],
+    ['原创动画', '原创'],
+    ['网文', '小说'],
+    ['漫改', '漫画'],
+    ['漫画改编', '漫画'],
+    ['游戏改编', '游戏'],
+    ['小说改编', '小说']
+  ]);
+  const sourceTagSet = new Set(['原创', '游戏', '小说', '漫画']);
+  const regionTagSet = new Set([
+    '日本',
+    '欧美',
+    '美国',
+    '中国',
+    '法国',
+    '韩国',
+    '英国',
+    '俄罗斯',
+    '中国香港',
+    '苏联',
+    '捷克',
+    '中国台湾',
+    '马来西亚'
+  ]);
+  const sourceTagCounts = new Map();
+  const regionTags = new Set();
+  const tagCounts = new Map();
+  const metaTagCounts = new Map();
+  const allMetaTags = new Set();
+  const rawTags = new Map();
+  const networkTagsSet = new Set();
+
+  const appearances = await Promise.all(
+    filteredAppearances.map(async (appearance) => {
+      try {
+        const stuffFactor = appearance.staff === '主角' ? 3 : 1;
+        const details = await getSubjectDetails(appearance.id);
+        if (!details || details.year === null) return null;
+
+    if (!settings.metaTags.filter((tag) => tag !== '').every((tag) => details.meta_tags.includes(tag))) {
+      return null;
+    }
+
+        if (latestAppearance === -1 || details.year > latestAppearance) {
+          latestAppearance = details.year;
+        }
+        if (earliestAppearance === -1 || details.year < earliestAppearance) {
+          earliestAppearance = details.year;
+        }
+        if (details.rating > highestRating) {
+          highestRating = details.rating;
+        }
+
+        if (settings.commonTags) {
+          details.raw_tags.forEach((tag) => {
+            if (sourceTagSet.has(tag.name)) {
+              sourceTagCounts.set(tag.name, (sourceTagCounts.get(tag.name) || 0) + stuffFactor * tag.count);
+            } else if (sourceTagMap.has(tag.name)) {
+              const mappedTag = sourceTagMap.get(tag.name);
+              sourceTagCounts.set(mappedTag, (sourceTagCounts.get(mappedTag) || 0) + stuffFactor * tag.count);
+            } else {
+              rawTags.set(tag.name, (rawTags.get(tag.name) || 0) + stuffFactor * tag.count);
+              networkTagsSet.add(tag.name);
+            }
+          });
+        } else {
+          details.meta_tags.forEach((tag) => {
+            if (sourceTagSet.has(tag)) {
+              return;
+            } else if (regionTagSet.has(tag)) {
+              regionTags.add(tag);
+            } else {
+              metaTagCounts.set(tag, (metaTagCounts.get(tag) || 0) + (tagCounts.get(tag) || stuffFactor));
+              networkTagsSet.add(tag);
+            }
+          });
+
+          details.tags.forEach((tagObj) => {
+            const [[name, count]] = Object.entries(tagObj);
+            if (sourceTagSet.has(name)) {
+              sourceTagCounts.set(name, (sourceTagCounts.get(name) || 0) + count * stuffFactor);
+            } else if (regionTagSet.has(name)) {
+              regionTags.add(name);
+            } else if (sourceTagMap.has(name)) {
+              const mappedTag = sourceTagMap.get(name);
+              sourceTagCounts.set(mappedTag, (sourceTagCounts.get(mappedTag) || 0) + count * stuffFactor);
+            } else if (regionTags.has(name)) {
+              return;
+            } else {
+              tagCounts.set(name, (tagCounts.get(name) || 0) + count * stuffFactor);
+              networkTagsSet.add(name);
+            }
+          });
+        }
+
+        return {
+          id: appearance.id,
+          name: details.name,
+          rating_count: details.rating_count
+        };
+      } catch (error) {
+        console.error(`Failed to get details for subject ${appearance.id}:`, error);
+        return null;
+      }
+    })
+  );
+
+  let sortedRawTags;
+  let sortedSourceTags;
+  let sortedTags;
+  let sortedMetaTags;
+  let networkTags = [];
+  if (settings.commonTags) {
+    sortedSourceTags = Array.from(sourceTagCounts.entries())
+      .map(([name, count]) => ({ [name]: count }))
+      .sort((a, b) => Object.values(b)[0] - Object.values(a)[0]);
+    if (sortedSourceTags.length > 0) {
+      const topSourceTag = Object.entries(sortedSourceTags[0])[0];
+      rawTags.set(topSourceTag[0], (rawTags.get(topSourceTag[0]) || 0) + topSourceTag[1]);
+    }
+    const sortedEntries = [...rawTags.entries()]
+      .filter((entry) => !entry[0].includes('20'))
+      .sort((a, b) => b[1] - a[1]);
+    const maxCount = sortedEntries.length > 0 ? sortedEntries[0][1] : 0;
+    const threshold = maxCount * 0.1;
+    let cutoffIndex = sortedEntries.findIndex((entry) => entry[1] < threshold);
+    sortedRawTags = new Map(sortedEntries.slice(0, Math.max(cutoffIndex, settings.subjectTagNum)));
+    networkTags = Array.from(sortedRawTags.keys());
+  } else {
+    sortedSourceTags = Array.from(sourceTagCounts.entries())
+      .map(([name, count]) => ({ [name]: count }))
+      .sort((a, b) => Object.values(b)[0] - Object.values(a)[0]);
+
+    sortedTags = Array.from(tagCounts.entries())
+      .map(([name, count]) => ({ [name]: count }))
+      .sort((a, b) => Object.values(b)[0] - Object.values(a)[0]);
+
+    sortedMetaTags = Array.from(metaTagCounts.entries())
+      .map(([name, count]) => ({ [name]: count }))
+      .sort((a, b) => Object.values(b)[0] - Object.values(a)[0]);
+
+    if (sortedSourceTags.length > 0) {
+      allMetaTags.add(Object.keys(sortedSourceTags[0])[0]);
+    }
+    for (const tagObj of sortedMetaTags) {
+      if (allMetaTags.size >= settings.subjectTagNum) break;
+      allMetaTags.add(Object.keys(tagObj)[0]);
+    }
+    for (const tagObj of sortedTags) {
+      if (allMetaTags.size >= settings.subjectTagNum) break;
+      allMetaTags.add(Object.keys(tagObj)[0]);
+    }
+    if (idToTags && idToTags[characterId]) {
+      idToTags[characterId]
+        .slice(0, Math.min(settings.characterTagNum, idToTags[characterId].length))
+        .forEach((tag) => allMetaTags.add(tag));
+    }
+    regionTags.forEach((tag) => allMetaTags.add(tag));
+    networkTags = Array.from(networkTagsSet);
+  }
+
+  const appearanceNames = [];
+  const appearanceIds = [];
+
+  appearances
+    .filter((appearance) => appearance !== null)
+    .sort((a, b) => b.rating_count - a.rating_count)
+    .forEach((appearance) => {
+      appearanceNames.push(appearance.name);
+      appearanceIds.push(appearance.id);
+    });
+
+  const animeVAs = new Set();
+  const vaList = persons.filter((person) => person.subject_type === 2 || person.subject_type === 4);
+  vaList.forEach((person) => {
+    allMetaTags.add(`${person.name}`);
+    animeVAs.add(person.name);
+  });
+
+  return {
+    appearances: appearanceNames,
+    appearanceIds: appearanceIds,
+    latestAppearance,
+    earliestAppearance,
+    highestRating,
+    rawTags: sortedRawTags || new Map(),
+    animeVAs: Array.from(animeVAs),
+    metaTags: Array.from(allMetaTags),
+    networkTags
+  };
 }
 
 async function getCharacterDetails(characterId) {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/v0/characters/${characterId}`);
-    if (!response.data) {
-      throw new Error('No character details found');
-    }
-
-    const characterTags = Array.isArray(response.data.tags)
-      ? response.data.tags.map(tag => tag.name).filter(Boolean)
-      : [];
-
-    // Extract Chinese name from infobox
-    const nameCn = response.data.infobox?.find(item => item.key === '简体中文名')?.value || null;
-
-    let nameEn = null;
-    const aliases = response.data.infobox?.find(item => item.key === '别名')?.value;
-    if (aliases && Array.isArray(aliases)) {
-      const englishName = aliases.find(alias => alias.k === '英文名');
-      if (englishName) {
-        nameEn = englishName.v;
-      } else {
-        const romaji = aliases.find(alias => alias.k === '罗马字');
-        if (romaji) {
-          nameEn = romaji.v;
-        }
-      }
-    }
-
-    // Handle gender - only accept string values of 'male' or 'female'
-    const gender = typeof response.data.gender === 'string' && 
-      (response.data.gender === 'male' || response.data.gender === 'female') 
-      ? response.data.gender 
-      : '?';
-
-    return {
-      name: response.data.name,
-      nameCn: nameCn,
-      nameEn: nameEn,
-      gender,
-      image: response.data.images.medium,
-      imageGrid: response.data.images.grid,
-      summary: response.data.summary,
-      popularity: response.data.stat.collects+response.data.stat.comments,
-      apiCharacterTags: characterTags
-    };
-  } catch (error) {
-    console.error('Error fetching character details:', error);
-    throw error;
+  const entry = getLocalCharacterEntry(characterId);
+  if (!entry) {
+    throw new Error(`本地未找到角色 ${characterId}`);
   }
+
+  const apiCharacterTags = Array.isArray(entry.characterTags)
+    ? entry.characterTags.map((tag) => tag.name).filter(Boolean)
+    : [];
+
+  return {
+    name: entry.remoteName || entry.localName || '',
+    nameCn: entry.remoteNameCn || entry.remoteName || entry.localName || '',
+    nameEn: entry.remoteName || entry.localName || '',
+    gender: '?',
+    image: getLocalImage(characterId),
+    imageGrid: getLocalImage(characterId),
+    summary: '',
+    popularity: Array.isArray(entry.subjectTags)
+      ? entry.subjectTags.reduce((sum, tag) => sum + (tag.count || 0), 0)
+      : 0,
+    apiCharacterTags
+  };
 }
 
 async function getCharactersBySubjectId(subjectId) {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/v0/subjects/${subjectId}/characters`);
+  return SUBJECT_TO_CHARACTER_MAP.get(Number(subjectId)) || [];
+}
 
-    if (!response.data || !response.data.length) {
-      throw new Error('No characters found for this anime');
+function filterBySettings(entry, gameSettings = {}) {
+  const charId = Number(entry.remoteId);
+  const subjects = CHARACTER_SUBJECT_MAP.get(charId) || [];
+  if (subjects.length === 0) return false;
+  const details = subjects
+    .map((s) => SUBJECT_DETAIL_MAP.get(Number(s.id)))
+    .filter(Boolean)
+    .filter((detail) => {
+      if (!gameSettings.includeGame) {
+        return detail.type === 2 || subjectsWithExtraTags.has(detail.id);
+      }
+      return true;
+    });
+  if (details.length === 0) return false;
+
+  const years = details.map(getSubjectYear).filter((y) => y !== null);
+  if (years.length === 0) return false;
+  const minYear = Math.min(...years);
+  const maxYear = Math.max(...years);
+  if (gameSettings.startYear && maxYear < gameSettings.startYear) return false;
+  if (gameSettings.endYear && minYear > gameSettings.endYear) return false;
+
+  const requiredMetaTags = (gameSettings.metaTags || []).filter((tag) => tag);
+  if (requiredMetaTags.length > 0) {
+    const unionMeta = new Set();
+    details.forEach((detail) => {
+      (detail.meta_tags || []).forEach((tag) => unionMeta.add(tag));
+    });
+    const missing = requiredMetaTags.some((tag) => !unionMeta.has(tag));
+    if (missing) return false;
+  }
+  return true;
+}
+
+async function getRandomCharacter(gameSettings = {}) {
+  const candidates = LOCAL_CHARACTERS.filter((entry) => filterBySettings(entry, gameSettings));
+
+  if (candidates.length === 0) {
+    throw new Error('本地数据未包含满足筛选条件的角色，或相关索引/搜索结果未被爬取');
+  }
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const entry = candidates[Math.floor(Math.random() * candidates.length)];
+      const base = buildCharacterFromEntry(entry);
+      if (base) {
+        return enrichWithTouhouData(base);
+      }
+    } catch (err) {
+      console.warn(`本地随机角色尝试 ${attempt + 1} 失败:`, err);
     }
+  }
 
-    const filteredCharacters = response.data.filter(character => 
-      character.relation === '主角' || character.relation === '配角'
+  throw new Error('本地随机角色选择失败');
+}
+
+async function designateCharacter(characterId, gameSettings = {}) {
+  const base = buildCharacterFromEntry(getLocalCharacterEntry(characterId));
+  if (!base) {
+    throw new Error(`本地未找到角色 ${characterId}`);
+  }
+  const [details, appearances] = await Promise.all([
+    getCharacterDetails(characterId),
+    getCharacterAppearances(characterId, gameSettings || {})
+  ]);
+  return enrichWithTouhouData({
+    id: Number(characterId),
+    ...details,
+    ...appearances
+  });
+}
+
+function searchCharacters(keyword, limit = 10, offset = 0) {
+  if (!keyword || typeof keyword !== 'string') {
+    return { results: [], hasMore: false };
+  }
+  const normalized = normalizeName(keyword);
+  const matched = LOCAL_CHARACTERS.filter((entry) => {
+    const names = [
+      entry.localName,
+      entry.remoteName,
+      entry.remoteNameCn
+    ];
+    return names.some((n) => normalizeName(n).includes(normalized));
+  }).map((entry) => ({
+    id: Number(entry.remoteId),
+    image: getLocalImage(entry.remoteId),
+    name: entry.remoteName || entry.localName || '',
+    nameCn: entry.remoteNameCn || entry.remoteName || entry.localName || '',
+    nameEn: entry.remoteName || entry.localName || '',
+    gender: '?',
+    popularity: Array.isArray(entry.subjectTags)
+      ? entry.subjectTags.reduce((sum, tag) => sum + (tag.count || 0), 0)
+      : 0
+  }));
+
+  const results = matched.slice(offset, offset + limit);
+  const hasMore = offset + limit < matched.length;
+  return { results, hasMore };
+}
+
+async function getIndexInfo() {
+  throw new Error('本地未抓取 index 数据，无法使用索引');
+}
+
+async function searchSubjects(keyword) {
+  if (!keyword || typeof keyword !== 'string') return [];
+  const normalized = normalizeName(keyword);
+  const matched = (subjectDetailsData?.data || []).filter((subject) => {
+    return (
+      normalizeName(subject.name).includes(normalized) ||
+      normalizeName(subject.name_cn).includes(normalized)
     );
+  });
 
-    if (filteredCharacters.length === 0) {
-      throw new Error('No main or supporting characters found for this anime');
-    }
-  
-    return filteredCharacters;
-  } catch (error) {
-    console.error('Error fetching characters:', error);
-    throw error;
-  }
-}
-
-async function getRandomCharacter(gameSettings) {
-  try {
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        const touhouEntry = getRandomTouhouEntry();
-        const keyword = touhouEntry ? (touhouEntry[TOUHOU_NAME_KEY] || '').trim() : '';
-        if (!keyword) continue;
-        const remote = await searchCharacterByKeyword(keyword);
-        if (!remote) continue;
-        const merged = buildCharacterFromRemote(remote, keyword);
-        if (merged) {
-          return enrichWithTouhouData(merged);
-        }
-      } catch (err) {
-        console.warn(`Touhou local selection attempt ${attempt + 1} failed:`, err);
-      }
-    }
-
-    let subject;
-    let total;
-    let randomOffset;
-    const batchSize = 10;
-    let batchOffset;
-    let indexInBatch;
-    
-    if (gameSettings.useIndex && gameSettings.indexId) {
-      // Get index info first
-      const indexInfo = await getIndexInfo(gameSettings.indexId);
-      // Get total from index info
-      total = indexInfo.total + gameSettings.addedSubjects.length; 
-      
-      // Get a random offset within the total number of subjects
-      randomOffset = Math.floor(Math.random() * total);
-
-      if (randomOffset >= indexInfo.total) {
-        randomOffset = randomOffset - indexInfo.total;
-        subject = gameSettings.addedSubjects[randomOffset];
-      } else {
-        // Calculate batch-aligned offset and select random item from batch
-        batchOffset = Math.floor(randomOffset / batchSize) * batchSize;
-        indexInBatch = randomOffset % batchSize;
-        // Fetch batch of subjects from the index
-        const response = await axios.get(
-          `${API_BASE_URL}/v0/indices/${gameSettings.indexId}/subjects?limit=${batchSize}&offset=${batchOffset}`
-        );
-
-        if (!response.data || !response.data.data || response.data.data.length === 0) {
-          throw new Error('No subjects found in index');
-        }
-
-        subject = response.data.data[Math.min(indexInBatch, response.data.data.length - 1)];
-      }
-    }
-    else if (gameSettings.useSubjectPerYear){
-      const startYear = gameSettings.startYear;
-      const endYear = Math.min(gameSettings.endYear, new Date().getFullYear());
-      const randomYear = startYear + Math.floor(Math.random() * (endYear - startYear + 1));
-      const endDate = new Date(`${randomYear + 1}-01-01`);
-      const today = new Date();
-      const minDate = new Date(Math.min(endDate.getTime(), today.getTime())).toISOString().split('T')[0];
-
-      total = gameSettings.topNSubjects*(endYear-startYear+1) + gameSettings.addedSubjects.length;
-      randomOffset = Math.floor(Math.random() * total);
-
-      if (randomOffset >= gameSettings.topNSubjects*(endYear-startYear+1)) {
-        randomOffset = randomOffset - gameSettings.topNSubjects;
-        subject = gameSettings.addedSubjects[randomOffset];
-      } 
-      else {
-        randomOffset = Math.floor(Math.random() * gameSettings.topNSubjects);
-        batchOffset = Math.floor(randomOffset / batchSize) * batchSize;
-        indexInBatch = randomOffset % batchSize;
-        const response = await axios.post(`${API_BASE_URL}/v0/search/subjects?limit=${batchSize}&offset=${batchOffset}`, {
-          "sort": "heat",
-          "filter": {
-            "type": [2],
-            "air_date": [
-              `>=${randomYear}-01-01`,
-              `<${minDate}`
-            ],
-            "meta_tags": gameSettings.metaTags.filter(tag => tag !== "")
-          }
-        });
-        if (!response.data || !response.data.data || response.data.data.length === 0) {
-          throw new Error('Failed to fetch subject for the selected year');
-        }
-        subject = response.data.data[Math.min(indexInBatch, response.data.data.length - 1)];
-      }
-    }
-    else {
-      gameSettings.useIndex = false;
-      total = gameSettings.topNSubjects+gameSettings.addedSubjects.length;
-      randomOffset = Math.floor(Math.random() * total);
-      const endDate = new Date(`${gameSettings.endYear + 1}-01-01`);
-      const today = new Date();
-      const minDate = new Date(Math.min(endDate.getTime(), today.getTime())).toISOString().split('T')[0];
-      
-      if (randomOffset >= gameSettings.topNSubjects) {
-        randomOffset = randomOffset - gameSettings.topNSubjects;
-        subject = gameSettings.addedSubjects[randomOffset];
-      } 
-      else {
-        // Calculate batch-aligned offset
-        batchOffset = Math.floor(randomOffset / batchSize) * batchSize;
-        indexInBatch = randomOffset % batchSize;
-        
-        // Fetch batch of subjects
-        const response = await axios.post(`${API_BASE_URL}/v0/search/subjects?limit=${batchSize}&offset=${batchOffset}`, {
-          "sort": "heat",
-          "filter": {
-            "type": [2],
-            "air_date": [
-              `>=${gameSettings.startYear}-01-01`,
-              `<${minDate}`
-            ],
-            "meta_tags": gameSettings.metaTags.filter(tag => tag !== "")
-          }
-        });
-
-        if (!response.data || !response.data.data || response.data.data.length === 0) {
-          throw new Error('Failed to fetch subject at random offset');
-        }
-
-        subject = response.data.data[Math.min(indexInBatch, response.data.data.length - 1)];
-      }
-    }
-
-    // Get characters for the selected subject
-    const characters = await getCharactersBySubjectId(subject.id);
-    
-    // Filter and select characters based on mainCharacterOnly setting
-    const filteredCharacters = gameSettings.mainCharacterOnly
-      ? characters.filter(character => character.relation === '主角')
-      : characters.filter(character => character.relation === '主角' || character.relation === '配角').slice(0, gameSettings.characterNum);
-
-    if (filteredCharacters.length === 0) {
-      throw new Error('No characters found for this anime');
-    }
-
-    // Randomly select one character from the filtered characters
-    const selectedCharacter = filteredCharacters[Math.floor(Math.random() * filteredCharacters.length)];
-
-    // Get additional character details
-    const characterDetails = await getCharacterDetails(selectedCharacter.id);
-
-    // Get character appearances
-    const appearances = await getCharacterAppearances(selectedCharacter.id, gameSettings);
-
-    return enrichWithTouhouData({
-      ...selectedCharacter,
-      ...characterDetails,
-      ...appearances
-    });
-  } catch (error) {
-    console.error('Error getting random character:', error);
-    throw error;
-  }
-}
-
-async function designateCharacter(characterId, gameSettings) {
-  try {
-    // Get additional character details
-    const characterDetails = await getCharacterDetails(characterId);
-
-    // Get character appearances
-    const appearances = await getCharacterAppearances(characterId, gameSettings);
-    console.log(characterDetails);
-
-    return enrichWithTouhouData({
-      id: characterId,
-      ...characterDetails,
-      ...appearances
-    });
-  } catch (error) {
-    console.error('Error getting random character:', error);
-    throw error;
-  }
+  return matched.map((subject) => ({
+    id: subject.id,
+    name: subject.name,
+    name_cn: subject.name_cn,
+    image: subject.images?.grid || subject.images?.medium || '',
+    date: subject.date,
+    type: subject.type === 2 ? '动漫' : '游戏'
+  }));
 }
 
 function generateFeedback(guess, answerCharacter) {
@@ -644,7 +556,7 @@ function generateFeedback(guess, answerCharacter) {
   const guessProfile = guess.touhouProfile || null;
   const answerProfile = answerCharacter.touhouProfile || null;
 
-  const attributeFeedback = ATTRIBUTE_DEFINITIONS.map(def => {
+  const attributeFeedback = ATTRIBUTE_DEFINITIONS.map((def) => {
     const guessValue = guessProfile ? guessProfile[def.key] || '未知' : '未知';
     const answerValue = answerProfile ? answerProfile[def.key] || '未知' : '未知';
     return {
@@ -658,8 +570,8 @@ function generateFeedback(guess, answerCharacter) {
   result.touhouAttributes = attributeFeedback;
 
   const sharedAttributeTags = attributeFeedback
-    .filter(attr => attr.match && attr.value !== '未知')
-    .map(attr => `${attr.label}：${attr.value}`);
+    .filter((attr) => attr.match && attr.value !== '未知')
+    .map((attr) => `${attr.label}:${attr.value}`);
 
   result.metaTags = {
     guess: Array.isArray(guess.metaTags) ? guess.metaTags : [],
@@ -675,55 +587,6 @@ function generateFeedback(guess, answerCharacter) {
   return result;
 }
 
-async function getIndexInfo(indexId) {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/v0/indices/${indexId}`);
-    
-    if (!response.data) {
-      throw new Error('No index information found');
-    }
-
-    return {
-      title: response.data.title,
-      total: response.data.total
-    };
-  } catch (error) {
-    if (error.response?.status === 404) {
-      throw new Error('Index not found');
-    }
-    console.error('Error fetching index information:', error);
-    throw error;
-  }
-}
-
-async function searchSubjects(keyword) {
-  try {
-    const response = await axios.post(`${API_BASE_URL}/v0/search/subjects`, {
-      keyword: keyword.trim(),
-      filter: {
-        // type: [2]  // Only anime
-        type: [2, 4]  // anime and game
-      }
-    });
-
-    if (!response.data || !response.data.data) {
-      return [];
-    }
-
-    return response.data.data.map(subject => ({
-      id: subject.id,
-      name: subject.name,
-      name_cn: subject.name_cn,
-      image: subject.images?.grid || subject.images?.medium || '',
-      date: subject.date,
-      type: subject.type==2 ? '动漫' : '游戏'
-    }));
-  } catch (error) {
-    console.error('Error searching subjects:', error);
-    return [];
-  }
-}
-
 export {
   getRandomCharacter,
   designateCharacter,
@@ -732,5 +595,7 @@ export {
   getCharacterDetails,
   generateFeedback,
   getIndexInfo,
-  searchSubjects
-}; 
+  searchSubjects,
+  searchCharacters,
+  searchCharacterByKeyword
+};
