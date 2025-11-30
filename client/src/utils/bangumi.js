@@ -1,10 +1,11 @@
-import { idToTags } from '../data/id_tags.js';
+﻿import { idToTags } from '../data/id_tags.js';
 import { subjectsWithExtraTags } from '../data/extra_tag_subjects.js';
 import touhouCharacters from '../data/touhouCharacters.json';
 import touhouRemoteTags from '../data/touhou_remote_tags.json';
 import characterSubjectsData from '../data/touhou_character_subjects.json';
 import characterPersonsData from '../data/touhou_character_persons.json';
 import subjectDetailsData from '../data/touhou_subjects.json';
+import characterImages from '../data/character_images.json';
 import { ATTRIBUTE_DEFINITIONS, getSharedWorks, enrichWithTouhouData } from './touhouDataset.js';
 
 const TOUHOU_NAME_KEY = '角色';
@@ -16,7 +17,8 @@ const CHARACTER_SUBJECT_MAP = new Map(
 const CHARACTER_PERSONS_MAP = new Map(
   (characterPersonsData?.data || []).map((entry) => [Number(entry.characterId), entry.persons || []])
 );
-const SUBJECT_TO_CHARACTER_MAP = buildSubjectCharacterMap();
+const CHARACTER_IMAGE_MAP = new Map((characterImages || []).map((entry) => [Number(entry.id), entry]));
+let SUBJECT_TO_CHARACTER_MAP = null;
 
 function normalizeName(name) {
   if (!name) return '';
@@ -36,23 +38,37 @@ function buildSubjectCharacterMap() {
       if (!map.has(sid)) {
         map.set(sid, []);
       }
+      const img = getCharacterImageRecord(charId).grid;
       map.get(sid).push({
         id: charId,
         name: entry.remoteName || entry.remoteNameCn || entry.localName || '',
         relation: subject.staff || '配角',
-        images: { grid: getLocalImage(charId) }
+        images: { grid: img }
       });
     });
   });
   return map;
 }
 
+function getSubjectCharacterMap() {
+  if (!SUBJECT_TO_CHARACTER_MAP) {
+    SUBJECT_TO_CHARACTER_MAP = buildSubjectCharacterMap();
+  }
+  return SUBJECT_TO_CHARACTER_MAP;
+}
+
 function getLocalCharacterEntry(id) {
   return LOCAL_CHARACTERS.find((entry) => Number(entry.remoteId) === Number(id)) || null;
 }
 
-function getLocalImage(id) {
-  return `/assets/touhou_characters/${id}.jpg`;
+function getCharacterImageRecord(id) {
+  const img = CHARACTER_IMAGE_MAP.get(Number(id));
+  const grid = img?.image_grid?.[0];
+  const medium = img?.image_medium?.[0];
+  return {
+    grid: grid || medium || `/assets/touhou_characters/${id}.jpg`,
+    medium: medium || grid || `/assets/touhou_characters/${id}.jpg`
+  };
 }
 
 function getSubjectYear(detail) {
@@ -97,12 +113,12 @@ function buildCharacterFromEntry(entry) {
 
   return {
     id,
-    name: entry.remoteName || entry.localName || '未知',
-    nameCn: entry.remoteNameCn || entry.remoteName || entry.localName || '未知',
-    nameEn: entry.remoteName || entry.localName || '未知',
+    name: entry.remoteName || entry.localName || '鏈煡',
+    nameCn: entry.remoteNameCn || entry.remoteName || entry.localName || '鏈煡',
+    nameEn: entry.remoteName || entry.localName || '鏈煡',
     gender: '?',
-    image: getLocalImage(id),
-    imageGrid: getLocalImage(id),
+    image: getCharacterImageRecord(id).medium,
+    imageGrid: getCharacterImageRecord(id).grid,
     summary: '',
     appearances: [],
     appearanceIds: [],
@@ -168,19 +184,19 @@ async function getCharacterAppearances(characterId, gameSettings = {}) {
   if (settings.includeGame) {
     filteredAppearances = subjects.filter(
       (appearance) =>
-        (appearance.staff === '主角' || appearance.staff === '配角') &&
+        (appearance.staff === '涓昏' || appearance.staff === '閰嶈') &&
         (appearance.type === 2 || appearance.type === 4)
     );
   } else {
     filteredAppearances = subjects.filter(
       (appearance) =>
-        (appearance.staff === '主角' || appearance.staff === '配角') &&
+        (appearance.staff === '涓昏' || appearance.staff === '閰嶈') &&
         (appearance.type === 2 || subjectsWithExtraTags.has(appearance.id))
     );
     if (filteredAppearances.length === 0) {
       filteredAppearances = subjects.filter(
         (appearance) =>
-          (appearance.staff === '主角' || appearance.staff === '配角') && appearance.type === 4
+          (appearance.staff === '涓昏' || appearance.staff === '閰嶈') && appearance.type === 4
       );
     }
   }
@@ -240,7 +256,7 @@ async function getCharacterAppearances(characterId, gameSettings = {}) {
   const appearances = await Promise.all(
     filteredAppearances.map(async (appearance) => {
       try {
-        const stuffFactor = appearance.staff === '主角' ? 3 : 1;
+        const stuffFactor = appearance.staff === '涓昏' ? 3 : 1;
         const details = await getSubjectDetails(appearance.id);
         if (!details || details.year === null) return null;
 
@@ -400,30 +416,45 @@ async function getCharacterAppearances(characterId, gameSettings = {}) {
 async function getCharacterDetails(characterId) {
   const entry = getLocalCharacterEntry(characterId);
   if (!entry) {
-    throw new Error(`本地未找到角色 ${characterId}`);
+    throw new Error('本地未找到角色 ' + characterId);
   }
 
   const apiCharacterTags = Array.isArray(entry.characterTags)
     ? entry.characterTags.map((tag) => tag.name).filter(Boolean)
     : [];
 
+  const popularity = (() => {
+    const img = CHARACTER_IMAGE_MAP.get(Number(characterId));
+    if (img?.collects) return img.collects;
+    const subjects = CHARACTER_SUBJECT_MAP.get(Number(characterId)) || [];
+    let maxCount = 0;
+    subjects.forEach((subject) => {
+      const detail = SUBJECT_DETAIL_MAP.get(Number(subject.id));
+      const ratingCount = detail?.rating?.total;
+      if (typeof ratingCount === 'number' && ratingCount > maxCount) {
+        maxCount = ratingCount;
+      }
+    });
+    return maxCount;
+  })();
+
+  const imgRec = getCharacterImageRecord(characterId);
+
   return {
     name: entry.remoteName || entry.localName || '',
     nameCn: entry.remoteNameCn || entry.remoteName || entry.localName || '',
     nameEn: entry.remoteName || entry.localName || '',
     gender: '?',
-    image: getLocalImage(characterId),
-    imageGrid: getLocalImage(characterId),
+    image: imgRec.medium,
+    imageGrid: imgRec.grid,
     summary: '',
-    popularity: Array.isArray(entry.subjectTags)
-      ? entry.subjectTags.reduce((sum, tag) => sum + (tag.count || 0), 0)
-      : 0,
+    popularity,
     apiCharacterTags
   };
 }
 
 async function getCharactersBySubjectId(subjectId) {
-  return SUBJECT_TO_CHARACTER_MAP.get(Number(subjectId)) || [];
+  return getSubjectCharacterMap().get(Number(subjectId)) || [];
 }
 
 function filterBySettings(entry, gameSettings = {}) {
@@ -464,7 +495,7 @@ async function getRandomCharacter(gameSettings = {}) {
   const candidates = LOCAL_CHARACTERS.filter((entry) => filterBySettings(entry, gameSettings));
 
   if (candidates.length === 0) {
-    throw new Error('本地数据未包含满足筛选条件的角色，或相关索引/搜索结果未被爬取');
+    throw new Error('鏈湴鏁版嵁鏈寘鍚弧瓒崇瓫閫夋潯浠剁殑瑙掕壊锛屾垨鐩稿叧绱㈠紩/鎼滅储缁撴灉鏈鐖彇');
   }
 
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -475,17 +506,17 @@ async function getRandomCharacter(gameSettings = {}) {
         return enrichWithTouhouData(base);
       }
     } catch (err) {
-      console.warn(`本地随机角色尝试 ${attempt + 1} 失败:`, err);
+      console.warn(`鏈湴闅忔満瑙掕壊灏濊瘯 ${attempt + 1} 澶辫触:`, err);
     }
   }
 
-  throw new Error('本地随机角色选择失败');
+  throw new Error('鏈湴闅忔満瑙掕壊閫夋嫨澶辫触');
 }
 
 async function designateCharacter(characterId, gameSettings = {}) {
   const base = buildCharacterFromEntry(getLocalCharacterEntry(characterId));
   if (!base) {
-    throw new Error(`本地未找到角色 ${characterId}`);
+    throw new Error(`鏈湴鏈壘鍒拌鑹?${characterId}`);
   }
   const [details, appearances] = await Promise.all([
     getCharacterDetails(characterId),
@@ -512,7 +543,7 @@ function searchCharacters(keyword, limit = 10, offset = 0) {
     return names.some((n) => normalizeName(n).includes(normalized));
   }).map((entry) => ({
     id: Number(entry.remoteId),
-    image: getLocalImage(entry.remoteId),
+    image: getCharacterImageRecord(entry.remoteId).grid,
     name: entry.remoteName || entry.localName || '',
     nameCn: entry.remoteNameCn || entry.remoteName || entry.localName || '',
     nameEn: entry.remoteName || entry.localName || '',
@@ -557,20 +588,20 @@ function generateFeedback(guess, answerCharacter) {
   const answerProfile = answerCharacter.touhouProfile || null;
 
   const attributeFeedback = ATTRIBUTE_DEFINITIONS.map((def) => {
-    const guessValue = guessProfile ? guessProfile[def.key] || '未知' : '未知';
-    const answerValue = answerProfile ? answerProfile[def.key] || '未知' : '未知';
+    const guessValue = guessProfile ? guessProfile[def.key] || '鏈煡' : '鏈煡';
+    const answerValue = answerProfile ? answerProfile[def.key] || '鏈煡' : '鏈煡';
     return {
       key: def.key,
       label: def.label,
       value: guessValue,
-      match: guessValue !== '未知' && answerValue !== '未知' && guessValue === answerValue
+      match: guessValue !== '鏈煡' && answerValue !== '鏈煡' && guessValue === answerValue
     };
   });
 
   result.touhouAttributes = attributeFeedback;
 
   const sharedAttributeTags = attributeFeedback
-    .filter((attr) => attr.match && attr.value !== '未知')
+    .filter((attr) => attr.match && attr.value !== '鏈煡')
     .map((attr) => `${attr.label}:${attr.value}`);
 
   result.metaTags = {
@@ -599,3 +630,7 @@ export {
   searchCharacters,
   searchCharacterByKeyword
 };
+
+
+
+
