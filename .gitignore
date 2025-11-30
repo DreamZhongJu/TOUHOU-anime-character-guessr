@@ -66,6 +66,9 @@ pnpm-debug.log*
 .cache
 .parcel-cache
 
+# Project assets output
+client/assets/
+
 # Next.js build output
 .next
 out
