@@ -1,6 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import axios from '../utils/cached-axios';
-import { searchSubjects, getCharactersBySubjectId, getCharacterDetails } from '../utils/bangumi';
+import { searchSubjects, getCharactersBySubjectId, getCharacterDetails, searchCharacters } from '../utils/bangumi';
 import { findTouhouProfileByCharacter } from '../utils/touhouDataset';
 import '../styles/search.css';
 import { submitGuessCharacterCount } from '../utils/db';
@@ -189,37 +188,12 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
 
     loadingState(true);
     try {
-      const response = await axios.post(
-        `https://api.bgm.tv/v0/search/characters?limit=${currentLimit}&offset=${currentOffset}`,
-        {
-          keyword: searchQuery.trim()
-        }
+      const { results: apiResults, hasMore: more } = searchCharacters(
+        searchQuery.trim(),
+        currentLimit,
+        currentOffset
       );
-
-      const apiResults = Array.isArray(response?.data?.data) ? response.data.data : [];
-      const mappedResults = apiResults.map(character => ({
-        id: character.id,
-        image: character.images?.grid || null,
-        name: character.name,
-        nameCn: character.infobox.find(item => item.key === '简体中文名')?.value || character.name,
-        nameEn: (() => {
-          const aliases = character.infobox.find(item => item.key === '别名')?.value;
-          if (aliases && Array.isArray(aliases)) {
-            const englishName = aliases.find(alias => alias.k === '英文名');
-            if (englishName) {
-              return englishName.v;
-            } else {
-              const romaji = aliases.find(alias => alias.k === '罗马字');
-              if (romaji) {
-                return romaji.v;
-              }
-            }
-          }
-          return character.name;
-        })(),
-        gender: character.gender || '?',
-        popularity: character.stat.collects + character.stat.comments
-      }));
+      const mappedResults = apiResults;
       const filteredResults = filterByLocalDataset(mappedResults);
 
       if (reset) {
@@ -230,7 +204,7 @@ function SearchBar({ onCharacterSelect, isGuessing, gameEnd, subjectSearch }) {
         setOffset(currentOffset + MORE_LIMIT);
       }
 
-      setHasMore(apiResults.length === currentLimit);
+      setHasMore(more);
     } catch (error) {
       console.error('Search failed:', error);
       if (reset) {
