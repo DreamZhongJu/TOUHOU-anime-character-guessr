@@ -68,6 +68,7 @@ pnpm-debug.log*
 
 # Project assets output
 client/assets/
+原版代码/
 
 # Next.js build output
 .next
