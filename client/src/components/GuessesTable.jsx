@@ -1,4 +1,6 @@
 import '../styles/GuessesTable.css';
+import { idToTags } from '../data/id_tags.js';
+
 const ATTRIBUTE_COLUMNS = [
   { label: '族谱', keys: ['种族'] },
   { label: '发色', keys: ['发色'] },
@@ -8,8 +10,10 @@ const ATTRIBUTE_COLUMNS = [
   { label: '身姿', keys: ['身材'] },
   { label: '足下', keys: ['足着'] }
 ];
+
 const SPLIT_REGEX = /[\/、，,]+/;
 const BLOCKED_TAGS = new Set(['囧仙']);
+
 const splitValue = (value) => {
   if (typeof value !== 'string') return [];
   return value
@@ -17,12 +21,14 @@ const splitValue = (value) => {
     .map(part => part.trim())
     .filter(Boolean);
 };
+
 function GuessesTable({ guesses, answerCharacter }) {
   const answerGuess = (
     Array.isArray(answerCharacter?.networkTags) && answerCharacter.networkTags.length > 0
       ? answerCharacter
       : guesses.find(g => g.isAnswer)
   ) || answerCharacter || {};
+
   const normalizeTags = (tags) => {
     if (!Array.isArray(tags)) return [];
     return tags.flatMap(t => {
@@ -31,15 +37,17 @@ function GuessesTable({ guesses, answerCharacter }) {
       return splitValue(v);
     }).filter(tag => !BLOCKED_TAGS.has(tag));
   };
-  const answerNetworkTags = new Set(normalizeTags(answerGuess.networkTags));
+
+  const answerNetworkTags = new Set(normalizeTags(idToTags[answerGuess.id] || []));
   const answerWorkTokens = new Set(
     (answerGuess.touhouWorks || [])
       .flatMap(work => splitValue(work.value))
       .filter(Boolean)
   );
-  const answerPopularity = typeof answerGuess.popularity === 'number' ? answerGuess.popularity : null;
-  const answerHighestRating = typeof answerGuess.highestRating === 'number' ? answerGuess.highestRating : null;
-  const answerEarliestAppearance = typeof answerGuess.earliestAppearance === 'number' ? answerGuess.earliestAppearance : null;
+  const answerPopularity = typeof answerGuess.popularity === 'number' ? answerGuess.popularity : 0;
+  const answerHighestRating = typeof answerGuess.highestRating === 'number' ? answerGuess.highestRating : 0;
+  const answerEarliestAppearance = typeof answerGuess.earliestAppearance === 'number' ? answerGuess.earliestAppearance : 0;
+
   const buildTrend = (value, answerValue) => {
     if (value === null || value === undefined || value === '-' || answerValue === null || answerValue === undefined) {
       return { display: '未知', trend: null };
@@ -57,8 +65,9 @@ function GuessesTable({ guesses, answerCharacter }) {
     }
     return { display: numValue, trend: 'equal' };
   };
+
   const renderMetric = (metric, extraClass = '') => {
-    const arrow = metric.trend === 'up' ? '↑' : metric.trend === 'down' ? '↓' : '〜';
+    const arrow = metric.trend === 'up' ? '↑' : metric.trend === 'down' ? '↓' : '';
     const trendClass = metric.trend ? `trend-${metric.trend}` : '';
     return (
       <span className={`metric-value ${extraClass} ${trendClass}`}>
@@ -66,6 +75,7 @@ function GuessesTable({ guesses, answerCharacter }) {
       </span>
     );
   };
+
   const buildAttributeMap = (guess) => {
     const map = {};
     (guess.touhouAttributes || []).forEach(attr => {
@@ -73,6 +83,7 @@ function GuessesTable({ guesses, answerCharacter }) {
     });
     return map;
   };
+
   const getAttributeDisplay = (attrMap, column) => {
     const tokens = column.keys.flatMap(key => {
       const attr = attrMap[key];
@@ -84,20 +95,22 @@ function GuessesTable({ guesses, answerCharacter }) {
     const isMatch = column.keys.every(key => attrMap[key]?.match);
     return { tokens, isMatch };
   };
+
   return (
     <div className="table-container">
       <table className="guesses-table">
         <thead>
           <tr>
             <th></th>
-            <th>幻想乡名称</th>
+            <th>角色信息</th>
             {ATTRIBUTE_COLUMNS.map(column => (
               <th key={column.label}>{column.label}</th>
             ))}
-            <th>红魔热度</th>
-            <th>最高评分</th>
-            <th>初次登场</th>
-            <th>出场作品</th>
+            <th>热度对比</th>
+            <th>评分对比</th>
+            <th>初登年份</th>
+            <th>网络标签</th>
+            <th>相关作品</th>
           </tr>
         </thead>
         <tbody>
@@ -106,25 +119,23 @@ function GuessesTable({ guesses, answerCharacter }) {
             const workTokens = (guess.touhouWorks || [])
               .flatMap(work => splitValue(work.value))
               .filter(v => v && v !== '未知');
-            const rawNetTags = Array.isArray(guess.networkTags)
-              ? guess.networkTags.filter(Boolean)
-              : [];
-            const netTags = rawNetTags
-              .flatMap(tag => splitValue(tag))
-              .filter(tag => !BLOCKED_TAGS.has(tag));
-            const popularityVal = typeof guess.popularity === 'number' ? guess.popularity : null;
+            const netTags = normalizeTags(idToTags[guess.id] || []);
+            const popularityVal = typeof guess.popularity === 'number'
+              ? guess.popularity
+              : answerPopularity;
             const highestRatingVal = typeof guess.highestRating === 'number' && guess.highestRating >= 0
               ? Number(guess.highestRating.toFixed(1))
-              : null;
+              : (typeof answerHighestRating === 'number' ? answerHighestRating : 0);
             const earliestAppearanceVal = typeof guess.earliestAppearance === 'number' && guess.earliestAppearance > 0
               ? guess.earliestAppearance
-              : null;
+              : (typeof answerEarliestAppearance === 'number' ? answerEarliestAppearance : 0);
             const metricPopularity = buildTrend(popularityVal, answerPopularity);
             const metricHighestRating = buildTrend(highestRatingVal, answerHighestRating);
             const metricEarliest = buildTrend(earliestAppearanceVal, answerEarliestAppearance);
             const matchedWorkTagSet = new Set(
               workTokens.filter(token => answerWorkTokens.has(token))
             );
+            const matchedNetTagSet = new Set(netTags.filter(tag => answerNetworkTags.has(tag)));
             return (
               <tr key={guessIndex}>
                 <td>
@@ -134,7 +145,7 @@ function GuessesTable({ guesses, answerCharacter }) {
                   <div className={`character-name-container ${guess.isAnswer ? 'correct' : ''}`}>
                     {guess.guessrName && (
                       <div className="character-guessr-name" style={{ fontSize: '12px', color: '#888' }}>
-                        猜想巫女：{guess.guessrName}
+                        本局命名：{guess.guessrName}
                       </div>
                     )}
                     <div className="character-name">{guess.name}</div>
@@ -176,6 +187,22 @@ function GuessesTable({ guesses, answerCharacter }) {
                 </td>
                 <td>
                   <div className="attribute-cell work-cell">
+                    {netTags.length > 0 ? (
+                      netTags.map((tag, idx) => (
+                        <span
+                          key={`${tag}-${idx}`}
+                          className={`attribute-token ${matchedNetTagSet.has(tag) ? 'match' : ''}`}
+                        >
+                          {tag}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="attribute-token unknown">未知</span>
+                    )}
+                  </div>
+                </td>
+                <td>
+                  <div className="attribute-cell work-cell">
                     {workTokens.length > 0 ? (
                       workTokens.map((work, idx) => (
                         <span
@@ -198,4 +225,5 @@ function GuessesTable({ guesses, answerCharacter }) {
     </div>
   );
 }
+
 export default GuessesTable;
