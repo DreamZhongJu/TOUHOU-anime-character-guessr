@@ -180,25 +180,35 @@ async function getCharacterAppearances(characterId, gameSettings = {}) {
     };
   }
 
+  const isMainOrSupport = (appearance) => {
+    if (!appearance || !appearance.staff) return true;
+    return appearance.staff === '主角' || appearance.staff === '配角';
+  };
+
   let filteredAppearances;
   if (settings.includeGame) {
     filteredAppearances = subjects.filter(
       (appearance) =>
-        (appearance.staff === '涓昏' || appearance.staff === '閰嶈') &&
+        isMainOrSupport(appearance) &&
         (appearance.type === 2 || appearance.type === 4)
     );
   } else {
     filteredAppearances = subjects.filter(
       (appearance) =>
-        (appearance.staff === '涓昏' || appearance.staff === '閰嶈') &&
+        isMainOrSupport(appearance) &&
         (appearance.type === 2 || subjectsWithExtraTags.has(appearance.id))
     );
     if (filteredAppearances.length === 0) {
       filteredAppearances = subjects.filter(
         (appearance) =>
-          (appearance.staff === '涓昏' || appearance.staff === '閰嶈') && appearance.type === 4
+          isMainOrSupport(appearance) && appearance.type === 4
       );
     }
+  }
+
+  // 若因 staff 编码缺失导致仍为空，直接使用所有作品
+  if (filteredAppearances.length === 0) {
+    filteredAppearances = subjects;
   }
 
   if (filteredAppearances.length === 0) {
