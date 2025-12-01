@@ -114,7 +114,7 @@ function GuessesTable({ guesses, answerCharacter }) {
           </tr>
         </thead>
         <tbody>
-          {guesses.map((guess, guessIndex) => {
+          {[...guesses].slice().reverse().map((guess, guessIndex) => {
             const attrMap = buildAttributeMap(guess);
             const workTokens = (guess.touhouWorks || [])
               .flatMap(work => splitValue(work.value))
