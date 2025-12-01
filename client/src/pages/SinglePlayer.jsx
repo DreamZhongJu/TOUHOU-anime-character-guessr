@@ -13,6 +13,7 @@ import '../styles/SinglePlayer.css';
 import axios from 'axios';
 import { useLocalStorage } from 'usehooks-ts';
 import { enrichWithTouhouData } from '../utils/touhouDataset';
+import subjectDetailsData from '../data/touhou_subjects.json';
 
 function SinglePlayer() {
   const [guesses, setGuesses] = useState([]);
@@ -51,6 +52,34 @@ function SinglePlayer() {
     commonTags: true
   });
   const [currentGameSettings, setCurrentGameSettings] = useState(gameSettings);
+  const subjectNameMap = useRef(new Map(
+    (subjectDetailsData?.data || subjectDetailsData || [])
+      .map(entry => [Number(entry.id), entry.name_cn || entry.name || '未知'])
+  )).current;
+
+  const buildWorksHints = (character, count = 1) => {
+    const ids = Array.isArray(character?.appearanceIds) && character.appearanceIds.length > 0
+      ? character.appearanceIds
+      : Array.isArray(character?.subjectIds)
+        ? character.subjectIds
+        : [];
+
+    const names = Array.from(new Set(
+      ids
+        .map(id => subjectNameMap.get(Number(id)))
+        .filter(name => name && !String(name).includes('漫才大赛'))
+    ));
+
+    if (names.length === 0) return [];
+
+    const shuffled = names
+      .map(name => ({ name, sort: Math.random() }))
+      .sort((a, b) => a.sort - b.sort)
+      .map(item => item.name);
+
+    const size = Math.max(1, Math.min(count, shuffled.length));
+    return shuffled.slice(0, size);
+  };
 
   const buildAnswerCharacter = async (settings) => {
     const baseCharacter = await getRandomCharacter(settings);
