@@ -28,6 +28,7 @@ function SinglePlayer() {
   const [hints, setHints] = useState([]);
   const [imgHint, setImgHint] = useState(null);
   const [useImageHint, setUseImageHint] = useState(0);
+  const [detailCharacter, setDetailCharacter] = useState(null);
   const [gameSettings, setGameSettings] = useLocalStorage('singleplayer-game-settings', {
     startYear: new Date().getFullYear() - 10,
     endYear: new Date().getFullYear(),
@@ -359,6 +360,7 @@ function SinglePlayer() {
       <GuessesTable
         guesses={guesses}
         answerCharacter={answerCharacter}
+        onCharacterClick={(character) => setDetailCharacter(character)}
       />
 
       {settingsPopup && (
@@ -379,6 +381,13 @@ function SinglePlayer() {
           result={gameEndPopup.result}
           answer={gameEndPopup.answer}
           onClose={() => setGameEndPopup(null)}
+        />
+      )}
+      {detailCharacter && (
+        <GameEndPopup
+          result="detail"
+          answer={detailCharacter}
+          onClose={() => setDetailCharacter(null)}
         />
       )}
     </div>

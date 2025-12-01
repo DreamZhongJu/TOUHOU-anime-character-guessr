@@ -7,6 +7,14 @@ import { idToTags } from '../data/id_tags';
 function GameEndPopup({ result, answer, onClose }) {
   const [showTagPopup, setShowTagPopup] = useState(false);
 
+  const headerText = (() => {
+    if (result === 'win') return '🎉 占卜成功，灵梦对你点头认可！';
+    if (result === 'detail') return '角色详情';
+    return '😢 符卡耗尽，下次再来吧';
+  })();
+
+  const imageSrc = answer?.image || answer?.imageGrid || `/assets/touhou_characters/${answer?.id}.jpg`;
+
   if (showTagPopup) {
     return (
       <TagContributionPopup
@@ -24,12 +32,12 @@ function GameEndPopup({ result, answer, onClose }) {
       <div className="popup-content">
         <button className="popup-close" onClick={onClose}><i className="fas fa-xmark"></i></button>
         <div className="popup-header">
-          <h2>{result === 'win' ? '🎉 占卜成功，灵梦对你点头' : '😢 符卡耗尽，下次再来吧'}</h2>
+          <h2>{headerText}</h2>
         </div>
         <div className="popup-body">
           <div className="answer-character">
             <img
-              src={answer.image}
+              src={imageSrc}
               alt={answer.name}
               className="answer-character-image"
             />

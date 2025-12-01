@@ -22,7 +22,7 @@ const splitValue = (value) => {
     .filter(Boolean);
 };
 
-function GuessesTable({ guesses, answerCharacter }) {
+function GuessesTable({ guesses, answerCharacter, onCharacterClick = () => {} }) {
   const answerGuess = (
     Array.isArray(answerCharacter?.networkTags) && answerCharacter.networkTags.length > 0
       ? answerCharacter
@@ -141,7 +141,11 @@ function GuessesTable({ guesses, answerCharacter }) {
                 <td>
                   <img src={guess.icon} alt="character" className="character-icon" />
                 </td>
-                <td>
+                <td
+                  className="character-cell"
+                  onClick={() => onCharacterClick(guess)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className={`character-name-container ${guess.isAnswer ? 'correct' : ''}`}>
                     {guess.guessrName && (
                       <div className="character-guessr-name" style={{ fontSize: '12px', color: '#888' }}>
