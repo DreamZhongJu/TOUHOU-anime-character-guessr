@@ -35,8 +35,6 @@ const Home = () => {
           <br />
           东方 Project 风味的角色占卜，建议带上耳机配合夜空星河食用。<br />
           本项目基于 <a href="https://github.com/kennylimz/anime-character-guessr">Anime Character Guessr</a> 的二次开发，仅供同好娱乐与学习，请勿商业化；数据来自 Bangumi 公开 API 与同人社群，如有侵权请第一时间联系。<br />
-          想了解规则可以旁听 <a href="https://www.bilibili.com/video/BV14CVRzUELs">巫女讲解</a>，也欢迎前往 <a href="https://blast.tv/counter-strikle">BLAST.tv</a> 观礼赛事。<br />
-          特别感谢 <a href="https://space.bilibili.com/87983557">@比那名居天子</a>、<a href="https://github.com/trim21">Bangumi 守望者</a>、以及<a href="https://github.com/kennylimz/anime-character-guessr/graphs/contributors">众贡献巫女</a>的灵力支持。
         </p>
       </div>
     </div>
