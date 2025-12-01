@@ -6,6 +6,7 @@ import characterSubjectsData from '../data/touhou_character_subjects.json';
 import characterPersonsData from '../data/touhou_character_persons.json';
 import subjectDetailsData from '../data/touhou_subjects.json';
 import characterImages from '../data/character_images.json';
+import characterSummaries from '../data/touhou_character_summaries.json';
 import { ATTRIBUTE_DEFINITIONS, getSharedWorks, enrichWithTouhouData } from './touhouDataset.js';
 
 const TOUHOU_NAME_KEY = '角色';
@@ -19,6 +20,12 @@ const CHARACTER_PERSONS_MAP = new Map(
 );
 const CHARACTER_IMAGE_MAP = new Map((characterImages || []).map((entry) => [Number(entry.id), entry]));
 let SUBJECT_TO_CHARACTER_MAP = null;
+const SUMMARY_MAP = new Map(
+  Object.entries((characterSummaries && characterSummaries.data) || {}).map(([id, summary]) => [
+    Number(id),
+    summary || ''
+  ])
+);
 
 function normalizeName(name) {
   if (!name) return '';
@@ -113,13 +120,13 @@ function buildCharacterFromEntry(entry) {
 
   return {
     id,
-    name: entry.remoteName || entry.localName || '鏈煡',
-    nameCn: entry.remoteNameCn || entry.remoteName || entry.localName || '鏈煡',
-    nameEn: entry.remoteName || entry.localName || '鏈煡',
+    name: entry.remoteName || entry.localName || '未知',
+    nameCn: entry.remoteNameCn || entry.remoteName || entry.localName || '未知',
+    nameEn: entry.remoteName || entry.localName || '未知',
     gender: '?',
     image: getCharacterImageRecord(id).medium,
     imageGrid: getCharacterImageRecord(id).grid,
-    summary: '',
+    summary: SUMMARY_MAP.get(id) || '',
     appearances: [],
     appearanceIds: [],
     latestAppearance: -1,
@@ -449,6 +456,7 @@ async function getCharacterDetails(characterId) {
   })();
 
   const imgRec = getCharacterImageRecord(characterId);
+  const summary = SUMMARY_MAP.get(Number(characterId)) || '';
 
   return {
     name: entry.remoteName || entry.localName || '',
@@ -457,7 +465,7 @@ async function getCharacterDetails(characterId) {
     gender: '?',
     image: imgRec.medium,
     imageGrid: imgRec.grid,
-    summary: '',
+    summary,
     popularity,
     apiCharacterTags
   };
@@ -640,6 +648,8 @@ export {
   searchCharacters,
   searchCharacterByKeyword
 };
+
+
 
 
 
