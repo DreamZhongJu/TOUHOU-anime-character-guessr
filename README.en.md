@@ -1,9 +1,9 @@
 [English](README.en.md) | [中文](README.md)
 
 ## Overview
-- This is an **unofficial, Touhou-themed derivative** of Anime Character Guessr, for fun only (no commercial use).
-- Inspired by [BLAST.tv](https://blast.tv/counter-strikle). Data is primarily from [Bangumi](https://bgm.tv/) plus Touhou community contributions. Special thanks to Touhou community friends for localization data.
-- Desktop browsers are recommended for the best experience.
+- This project is a Touhou-themed fork/derivative of [kennylimz/anime-character-guessr](https://github.com/kennylimz/anime-character-guessr), for fun/learning only (no commercial use). If there is any infringement, please contact us promptly.
+- Data is primarily from Bangumi's public API (https://bgm.tv) plus Touhou community contributions. Special thanks to Touhou community friends for localization data.
+- Inspired by [BLAST.tv](https://blast.tv/counter-strikle). Desktop browsers are recommended for the best experience.
 
 ## Getting Started
 
