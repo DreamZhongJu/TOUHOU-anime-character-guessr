@@ -85,6 +85,7 @@ const Multiplayer = () => {
   const [isAnswerSetter, setIsAnswerSetter] = useState(false);
   const [kickNotification, setKickNotification] = useState(null);
   const [answerViewMode, setAnswerViewMode] = useState('simple'); // 'simple' or 'detailed'
+  const [detailCharacter, setDetailCharacter] = useState(null);
 
   const buildAnswerCharacter = async (settings) => {
     const baseCharacter = await getRandomCharacter(settings);
@@ -958,6 +959,7 @@ const Multiplayer = () => {
                         guesses={guesses}
                         gameSettings={gameSettings}
                         answerCharacter={answerCharacter}
+                        onCharacterClick={(character) => setDetailCharacter(character)}
                       />
                     </div>
                   )}
@@ -1071,6 +1073,14 @@ const Multiplayer = () => {
               result={guesses.some(g => g.isAnswer) ? 'win' : 'lose'}
               answer={answerCharacter}
               onClose={() => setShowCharacterPopup(false)}
+            />
+          )}
+
+          {detailCharacter && (
+            <GameEndPopup
+              result="detail"
+              answer={detailCharacter}
+              onClose={() => setDetailCharacter(null)}
             />
           )}
 
