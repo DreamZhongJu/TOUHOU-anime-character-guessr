@@ -198,7 +198,9 @@ function SinglePlayer() {
         guessData.networkTags = Array.from(appearances.rawTags.keys());
       }
 
-      const isCorrect = guessData.id === answerCharacter.id;
+      const isCorrect =
+        guessData.id === answerCharacter.id ||
+        (guessData.remoteId && answerCharacter.remoteId && guessData.remoteId === answerCharacter.remoteId);
       const feedback = generateFeedback(guessData, answerCharacter, currentGameSettings);
       setGuessesLeft(prev => prev - 1);
 

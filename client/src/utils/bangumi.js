@@ -22,6 +22,20 @@ const LOCAL_PROFILES = getAllProfiles();
 const LOCAL_PROFILE_LIST = LOCAL_PROFILES.map((profile, idx) => ({ id: idx + 1, profile }));
 const LOCAL_PROFILE_ID_MAP = new Map(LOCAL_PROFILE_LIST.map((item) => [item.id, item.profile]));
 const PROFILE_ID_BY_PROFILE = new Map(LOCAL_PROFILE_LIST.map((item) => [item.profile, item.id]));
+const NAME_TO_REMOTE_ID = (() => {
+  const map = new Map();
+  LOCAL_CHARACTERS.forEach((entry) => {
+    const names = [entry.remoteName, entry.remoteNameCn, entry.localName].filter(Boolean);
+    names.forEach((n) => {
+      const key = normalizeName(n);
+      if (key && !map.has(key)) {
+        map.set(key, Number(entry.remoteId));
+      }
+    });
+  });
+  return map;
+})();
+const PLACEHOLDER_IMAGE = '/assets/icon.jpg';
 const SUBJECT_DETAIL_MAP = new Map((subjectDetailsData?.data || []).map((entry) => [Number(entry.id), entry]));
 const CHARACTER_SUBJECT_MAP = new Map(
   (characterSubjectsData?.data || []).map((entry) => [Number(entry.characterId), entry.subjects || []])
@@ -56,6 +70,31 @@ function getProfileById(profileId) {
   return LOCAL_PROFILE_ID_MAP.get(Number(profileId)) || null;
 }
 
+function getRemoteIdFromProfile(profile) {
+  const candidates = [
+    profile.name,
+    profile.primaryName,
+    profile.translatedName,
+    ...(profile.aliases || []),
+    ...(Array.isArray(profile.basic_info?.['本名']) ? profile.basic_info['本名'] : []),
+    ...(Array.isArray(profile.basic_info?.['译名']) ? profile.basic_info['译名'] : [])
+  ];
+  for (const name of candidates) {
+    const key = normalizeName(name);
+    if (NAME_TO_REMOTE_ID.has(key)) {
+      return NAME_TO_REMOTE_ID.get(key);
+    }
+  }
+  return null;
+}
+
+function getCharacterImageRecordFromProfile(profile) {
+  const remoteId = getRemoteIdFromProfile(profile);
+  if (!remoteId) return '';
+  const img = getCharacterImageRecord(remoteId);
+  return img?.medium || img?.grid || '';
+}
+
 function getProfileId(profile) {
   return PROFILE_ID_BY_PROFILE.get(profile) || null;
 }
@@ -74,19 +113,33 @@ function findProfileEntryByName(name) {
   return { id, profile };
 }
 
+function getCharacterImageByCharacter(character) {
+  const profile = character?.touhouProfile || findProfileEntryByName(character?.name || character?.nameCn)?.profile;
+  const profileImg = profile ? getCharacterImageRecordFromProfile(profile) : '';
+  const directImg = character?.image || character?.imageGrid || '';
+  if (profileImg) return profileImg;
+  if (directImg) return directImg;
+  const remoteId = character?.remoteId || (profile ? getRemoteIdFromProfile(profile) : null);
+  if (remoteId) return `/assets/touhou_characters/${remoteId}.jpg`;
+  return PLACEHOLDER_IMAGE;
+}
+
 function buildCharacterFromProfile(profile, id) {
   const primaryName = toArray(profile?.basic_info?.['本名'] || profile?.primaryName || profile?.name)[0] || profile?.name || '未知';
   const translatedName = toArray(profile?.basic_info?.['译名'] || profile?.translatedName)[0] || primaryName;
-  const image = profile?.image || profile?.avatar || '';
+  const image = profile?.image || profile?.avatar || getCharacterImageRecordFromProfile(profile);
   const metaTags = toArray(profile?.basic_info?.['萌点'] || profile?.['萌点']);
+  const remoteId = getRemoteIdFromProfile(profile);
   return {
     id: Number(id),
+    localId: Number(id),
+    remoteId: remoteId ? Number(remoteId) : null,
     name: profile?.name || primaryName,
     nameCn: translatedName || profile?.nameCn || profile?.name,
     nameEn: profile?.name || primaryName,
     gender: '?',
-    image,
-    imageGrid: image,
+    image: image || PLACEHOLDER_IMAGE,
+    imageGrid: image || PLACEHOLDER_IMAGE,
     summary: '',
     appearances: [],
     appearanceIds: [],
@@ -770,7 +823,9 @@ export {
   getIndexInfo,
   searchSubjects,
   searchCharacters,
-  searchCharacterByKeyword
+  searchCharacterByKeyword,
+  getCharacterImageByCharacter,
+  findProfileEntryByName
 };
 
 
