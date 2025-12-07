@@ -88,9 +88,11 @@
   text-align: left;
 }
 
-.guesses-table th:nth-child(10),
-.guesses-table td:nth-child(10) {
-  min-width: 220px;
+.guesses-table th:nth-child(8),
+.guesses-table td:nth-child(8),
+.guesses-table th:nth-child(9),
+.guesses-table td:nth-child(9) {
+  min-width: 200px;
 }
 
 .character-name-container {
