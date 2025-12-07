@@ -448,7 +448,9 @@ const Multiplayer = () => {
         enrichedGuessData.networkTags = Array.from(rawTagsMap.keys());
       }
 
-      const isCorrect = enrichedGuessData.id === answerCharacter.id;
+      const isCorrect =
+        enrichedGuessData.id === answerCharacter.id ||
+        (enrichedGuessData.remoteId && answerCharacter.remoteId && enrichedGuessData.remoteId === answerCharacter.remoteId);
       const feedback = generateFeedback(enrichedGuessData, answerCharacter);
       const guessPayload = {
         ...enrichedGuessData,

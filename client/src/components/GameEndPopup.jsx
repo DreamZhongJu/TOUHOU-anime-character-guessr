@@ -3,6 +3,7 @@ import subaruIcon from '/assets/subaru.jpg';
 import { useState } from 'react';
 import TagContributionPopup from './TagContributionPopup';
 import { idToTags } from '../data/id_tags';
+import { getCharacterImageByCharacter } from '../utils/bangumi';
 
 function GameEndPopup({ result, answer, onClose }) {
   const [showTagPopup, setShowTagPopup] = useState(false);
@@ -13,7 +14,7 @@ function GameEndPopup({ result, answer, onClose }) {
     return '😢 符卡耗尽，下次再来吧';
   })();
 
-  const imageSrc = answer?.image || answer?.imageGrid || `/assets/touhou_characters/${answer?.id}.jpg`;
+  const imageSrc = getCharacterImageByCharacter(answer);
 
   if (showTagPopup) {
     return (
