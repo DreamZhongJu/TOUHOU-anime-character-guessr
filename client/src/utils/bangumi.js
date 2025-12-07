@@ -1,4 +1,4 @@
-﻿import { idToTags } from '../data/id_tags.js';
+import { idToTags } from '../data/id_tags.js';
 import { subjectsWithExtraTags } from '../data/extra_tag_subjects.js';
 import touhouCharacters from '../data/touhouCharacters.json';
 import touhouRemoteTags from '../data/touhou_remote_tags.json';
@@ -7,10 +7,21 @@ import characterPersonsData from '../data/touhou_character_persons.json';
 import subjectDetailsData from '../data/touhou_subjects.json';
 import characterImages from '../data/character_images.json';
 import characterSummaries from '../data/touhou_character_summaries.json';
-import { ATTRIBUTE_DEFINITIONS, getSharedWorks, enrichWithTouhouData } from './touhouDataset.js';
+import {
+  ATTRIBUTE_DEFINITIONS,
+  getSharedWorks,
+  enrichWithTouhouData,
+  getAllProfiles,
+  normalizeName as normalizeDatasetName,
+  findTouhouProfileByName
+} from './touhouDataset.js';
 
 const TOUHOU_NAME_KEY = '角色';
 const LOCAL_CHARACTERS = Array.isArray(touhouRemoteTags?.data) ? touhouRemoteTags.data : [];
+const LOCAL_PROFILES = getAllProfiles();
+const LOCAL_PROFILE_LIST = LOCAL_PROFILES.map((profile, idx) => ({ id: idx + 1, profile }));
+const LOCAL_PROFILE_ID_MAP = new Map(LOCAL_PROFILE_LIST.map((item) => [item.id, item.profile]));
+const PROFILE_ID_BY_PROFILE = new Map(LOCAL_PROFILE_LIST.map((item) => [item.profile, item.id]));
 const SUBJECT_DETAIL_MAP = new Map((subjectDetailsData?.data || []).map((entry) => [Number(entry.id), entry]));
 const CHARACTER_SUBJECT_MAP = new Map(
   (characterSubjectsData?.data || []).map((entry) => [Number(entry.characterId), entry.subjects || []])
@@ -33,6 +44,61 @@ function normalizeName(name) {
     .replace(/[`'\"·\\?\\s]/g, '')
     .replace(/[（）()]/g, '')
     .toLowerCase();
+}
+
+function toArray(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
+  return [String(value).trim()].filter(Boolean);
+}
+
+function getProfileById(profileId) {
+  return LOCAL_PROFILE_ID_MAP.get(Number(profileId)) || null;
+}
+
+function getProfileId(profile) {
+  return PROFILE_ID_BY_PROFILE.get(profile) || null;
+}
+
+function mapProfileToCharacter(profile) {
+  const pid = getProfileId(profile);
+  if (!pid) return null;
+  return buildCharacterFromProfile(profile, pid);
+}
+
+function findProfileEntryByName(name) {
+  const profile = findTouhouProfileByName(name);
+  if (!profile) return null;
+  const id = getProfileId(profile);
+  if (!id) return null;
+  return { id, profile };
+}
+
+function buildCharacterFromProfile(profile, id) {
+  const primaryName = toArray(profile?.basic_info?.['本名'] || profile?.primaryName || profile?.name)[0] || profile?.name || '未知';
+  const translatedName = toArray(profile?.basic_info?.['译名'] || profile?.translatedName)[0] || primaryName;
+  const image = profile?.image || profile?.avatar || '';
+  const metaTags = toArray(profile?.basic_info?.['萌点'] || profile?.['萌点']);
+  return {
+    id: Number(id),
+    name: profile?.name || primaryName,
+    nameCn: translatedName || profile?.nameCn || profile?.name,
+    nameEn: profile?.name || primaryName,
+    gender: '?',
+    image,
+    imageGrid: image,
+    summary: '',
+    appearances: [],
+    appearanceIds: [],
+    latestAppearance: -1,
+    earliestAppearance: -1,
+    highestRating: -1,
+    popularity: 0,
+    rawTags: new Map(),
+    animeVAs: [],
+    metaTags,
+    touhouProfile: profile
+  };
 }
 
 function buildSubjectCharacterMap() {
@@ -93,22 +159,17 @@ function getRandomTouhouEntry() {
 async function searchCharacterByKeyword(keyword) {
   if (!keyword || typeof keyword !== 'string') return null;
   const normalized = normalizeName(keyword);
-  const candidate = LOCAL_CHARACTERS.find((entry) => {
+  const candidate = LOCAL_PROFILE_LIST.find(({ profile }) => {
     const names = [
-      entry.localName,
-      entry.remoteName,
-      entry.remoteNameCn
+      profile.name,
+      profile.primaryName,
+      profile.translatedName,
+      ...(profile.aliases || [])
     ];
-    return names.some((n) => normalizeName(n) === normalized);
+    return names.some((n) => normalizeDatasetName(n) === normalized || normalizeName(n) === normalized);
   });
-  if (candidate) {
-    return {
-      id: Number(candidate.remoteId),
-      name: candidate.remoteName,
-      nameCn: candidate.remoteNameCn
-    };
-  }
-  return null;
+  if (!candidate) return null;
+  return mapProfileToCharacter(candidate.profile);
 }
 
 function buildCharacterFromEntry(entry) {
@@ -162,6 +223,23 @@ async function getSubjectDetails(subjectId) {
 }
 
 async function getCharacterAppearances(characterId, gameSettings = {}) {
+  const profile = getProfileById(characterId);
+  if (profile) {
+    const networkTags = toArray(profile?.basic_info?.['萌点'] || profile?.['萌点']);
+    const works = toArray(profile?.basic_info?.['初登场作品'] || profile?.['初登场作品']);
+    return {
+      appearances: [],
+      appearanceIds: [],
+      latestAppearance: -1,
+      earliestAppearance: -1,
+      highestRating: -1,
+      rawTags: new Map(),
+      metaTags: [],
+      networkTags,
+      animeVAs: [],
+      touhouWorks: works.map((w, idx) => ({ key: `work-${idx}`, label: '初登场作品', value: w }))
+    };
+  }
   const subjects = CHARACTER_SUBJECT_MAP.get(Number(characterId)) || [];
   const persons = CHARACTER_PERSONS_MAP.get(Number(characterId)) || [];
   const settings = {
@@ -431,6 +509,10 @@ async function getCharacterAppearances(characterId, gameSettings = {}) {
 }
 
 async function getCharacterDetails(characterId) {
+  const profile = getProfileById(characterId);
+  if (profile) {
+    return mapProfileToCharacter(profile);
+  }
   const entry = getLocalCharacterEntry(characterId);
   if (!entry) {
     throw new Error('本地未找到角色 ' + characterId);
@@ -510,10 +592,16 @@ function filterBySettings(entry, gameSettings = {}) {
 }
 
 async function getRandomCharacter(gameSettings = {}) {
+  if (LOCAL_PROFILE_LIST.length > 0) {
+    const entry = LOCAL_PROFILE_LIST[Math.floor(Math.random() * LOCAL_PROFILE_LIST.length)];
+    const base = mapProfileToCharacter(entry.profile);
+    return enrichWithTouhouData(base);
+  }
+
   const candidates = LOCAL_CHARACTERS.filter((entry) => filterBySettings(entry, gameSettings));
 
   if (candidates.length === 0) {
-    throw new Error('鏈湴鏁版嵁鏈寘鍚弧瓒崇瓫閫夋潯浠剁殑瑙掕壊锛屾垨鐩稿叧绱㈠紩/鎼滅储缁撴灉鏈鐖彇');
+    throw new Error('本地数据未包含满足筛选条件的角色，或相关索引/搜索结果未被爬取');
   }
 
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -524,17 +612,23 @@ async function getRandomCharacter(gameSettings = {}) {
         return enrichWithTouhouData(base);
       }
     } catch (err) {
-      console.warn(`鏈湴闅忔満瑙掕壊灏濊瘯 ${attempt + 1} 澶辫触:`, err);
+      console.warn(`本地随机角色尝试 ${attempt + 1} 失败:`, err);
     }
   }
 
-  throw new Error('鏈湴闅忔満瑙掕壊閫夋嫨澶辫触');
+  throw new Error('本地随机角色选择失败');
 }
 
 async function designateCharacter(characterId, gameSettings = {}) {
+  const profile = getProfileById(characterId);
+  if (profile) {
+    const base = mapProfileToCharacter(profile);
+    return enrichWithTouhouData(base);
+  }
+
   const base = buildCharacterFromEntry(getLocalCharacterEntry(characterId));
   if (!base) {
-    throw new Error(`鏈湴鏈壘鍒拌鑹?${characterId}`);
+    throw new Error(`本地未找到角色${characterId}`);
   }
   const [details, appearances] = await Promise.all([
     getCharacterDetails(characterId),
@@ -552,27 +646,37 @@ function searchCharacters(keyword, limit = 10, offset = 0) {
     return { results: [], hasMore: false };
   }
   const normalized = normalizeName(keyword);
-  const matched = LOCAL_CHARACTERS.filter((entry) => {
+  const matched = LOCAL_PROFILE_LIST.filter(({ profile }) => {
     const names = [
-      entry.localName,
-      entry.remoteName,
-      entry.remoteNameCn
+      profile.name,
+      profile.primaryName,
+      profile.translatedName,
+      ...(profile.aliases || [])
     ];
-    return names.some((n) => normalizeName(n).includes(normalized));
-  }).map((entry) => ({
-    id: Number(entry.remoteId),
-    image: getCharacterImageRecord(entry.remoteId).grid,
-    name: entry.remoteName || entry.localName || '',
-    nameCn: entry.remoteNameCn || entry.remoteName || entry.localName || '',
-    nameEn: entry.remoteName || entry.localName || '',
-    gender: '?',
-    popularity: Array.isArray(entry.subjectTags)
-      ? entry.subjectTags.reduce((sum, tag) => sum + (tag.count || 0), 0)
-      : 0
-  }));
+    return names.some((n) => normalizeDatasetName(n).includes(normalized) || normalizeName(n).includes(normalized));
+  }).map(({ profile }) => {
+    const base = mapProfileToCharacter(profile);
+    if (!base) return null;
+    return {
+      ...base,
+      image: base.image || base.imageGrid || '',
+      popularity: 0
+    };
+  });
 
-  const results = matched.slice(offset, offset + limit);
-  const hasMore = offset + limit < matched.length;
+  const deduped = [];
+  const seen = new Set();
+  matched.forEach((entry) => {
+    if (!entry) return;
+    const key = normalizeName(entry.name || entry.nameCn) || String(entry.id);
+    if (!seen.has(key)) {
+      seen.add(key);
+      deduped.push(entry);
+    }
+  });
+
+  const results = deduped.slice(offset, offset + limit);
+  const hasMore = offset + limit < deduped.length;
   return { results, hasMore };
 }
 
@@ -596,8 +700,25 @@ async function searchSubjects(keyword) {
     name_cn: subject.name_cn,
     image: subject.images?.grid || subject.images?.medium || '',
     date: subject.date,
-    type: subject.type === 2 ? '动漫' : '游戏'
+    type: subject.type === 2 ? '动画' : '游戏'
   }));
+}
+
+function normalizeAttributeTokens(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.flatMap((v) => normalizeAttributeTokens(v));
+  }
+  return String(value)
+    .split(/[\/、，,；;\s]+/)
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
+
+function getProfileAttributeValues(profile, key) {
+  if (!profile) return [];
+  const raw = profile[key] || profile?.basic_info?.[key];
+  return normalizeAttributeTokens(raw);
 }
 
 function generateFeedback(guess, answerCharacter) {
@@ -606,21 +727,25 @@ function generateFeedback(guess, answerCharacter) {
   const answerProfile = answerCharacter.touhouProfile || null;
 
   const attributeFeedback = ATTRIBUTE_DEFINITIONS.map((def) => {
-    const guessValue = guessProfile ? guessProfile[def.key] || '鏈煡' : '鏈煡';
-    const answerValue = answerProfile ? answerProfile[def.key] || '鏈煡' : '鏈煡';
+    const guessValues = getProfileAttributeValues(guessProfile, def.key);
+    const answerValues = getProfileAttributeValues(answerProfile, def.key);
+    const hasMatch =
+      guessValues.length > 0 &&
+      answerValues.length > 0 &&
+      guessValues.some((val) => answerValues.includes(val));
     return {
       key: def.key,
       label: def.label,
-      value: guessValue,
-      match: guessValue !== '鏈煡' && answerValue !== '鏈煡' && guessValue === answerValue
+      value: guessValues.length > 0 ? guessValues : ['未知'],
+      match: hasMatch
     };
   });
 
   result.touhouAttributes = attributeFeedback;
 
   const sharedAttributeTags = attributeFeedback
-    .filter((attr) => attr.match && attr.value !== '鏈煡')
-    .map((attr) => `${attr.label}:${attr.value}`);
+    .filter((attr) => attr.match && Array.isArray(attr.value))
+    .flatMap((attr) => attr.value.map((val) => `${attr.label}:${val}`));
 
   result.metaTags = {
     guess: Array.isArray(guess.metaTags) ? guess.metaTags : [],
@@ -635,7 +760,6 @@ function generateFeedback(guess, answerCharacter) {
 
   return result;
 }
-
 export {
   getRandomCharacter,
   designateCharacter,
