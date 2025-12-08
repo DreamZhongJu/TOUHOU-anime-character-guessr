@@ -166,6 +166,7 @@
   min-height: 48px;
   text-align: center;
   transition: background 0.2s ease, border 0.2s ease;
+  box-shadow: none;
 }
 
 .attribute-cell.match {
