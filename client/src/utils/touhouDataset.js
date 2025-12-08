@@ -1,4 +1,4 @@
-import characterDetails from '../../../数据集/touhou_character_details.json';
+import characterDetails from '../../../数据集/touhou_character_details_normalized.json';
 import characterList from '../../../数据集/touhou_characters.json';
 
 const ATTRIBUTE_DEFINITIONS = [

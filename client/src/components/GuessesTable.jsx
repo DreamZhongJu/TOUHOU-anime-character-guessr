@@ -30,6 +30,24 @@ const getBasicInfoValues = (character, key) => {
   return [raw];
 };
 
+function TagChip({ label, matched = false, unknown = false }) {
+  const className = [
+    'attribute-token',
+    matched ? 'match' : '',
+    unknown ? 'unknown' : ''
+  ].filter(Boolean).join(' ');
+  return <span className={className}>{label}</span>;
+}
+
+const buildAnswerAttributeTokenMap = (answerCharacter) => {
+  const map = new Map();
+  ATTRIBUTE_COLUMNS.forEach((column) => {
+    const tokens = column.keys.flatMap((key) => splitValue(getBasicInfoValues(answerCharacter, key)));
+    map.set(column.label, new Set(tokens));
+  });
+  return map;
+};
+
 function GuessesTable({ guesses, answerCharacter, onCharacterClick = () => {} }) {
   const answerGuess = (
     Array.isArray(answerCharacter?.networkTags) && answerCharacter.networkTags.length > 0
@@ -81,6 +99,7 @@ function GuessesTable({ guesses, answerCharacter, onCharacterClick = () => {} })
 
   const answerNetworkTags = new Set(getNetTags(answerGuess));
   const answerWorkTokens = new Set(getWorkTokens(answerGuess));
+  const answerAttributeTokenMap = buildAnswerAttributeTokenMap(answerGuess);
 
   const buildAttributeMap = (guess) => {
     const map = {};
@@ -93,13 +112,14 @@ function GuessesTable({ guesses, answerCharacter, onCharacterClick = () => {} })
   const getAttributeDisplay = (attrMap, column) => {
     const tokens = column.keys.flatMap(key => {
       const attr = attrMap[key];
-      if (!attr || !attr.value || attr.value === '未知') {
+      if (!attr || !attr.value || attr.value === '暂无') {
         return [];
       }
       return splitValue(attr.value);
     });
-    const isMatch = column.keys.every(key => attrMap[key]?.match);
-    return { tokens, isMatch };
+    const answerTokens = answerAttributeTokenMap.get(column.label) || new Set();
+    const matchedSet = new Set(tokens.filter(token => answerTokens.has(token)));
+    return { tokens, matchedSet };
   };
 
   return (
@@ -112,8 +132,8 @@ function GuessesTable({ guesses, answerCharacter, onCharacterClick = () => {} })
             {ATTRIBUTE_COLUMNS.map(column => (
               <th key={column.label}>{column.label}</th>
             ))}
-            <th>网络标签</th>
-            <th>相关作品</th>
+            <th>相关属性</th>
+            <th>初登场作品</th>
           </tr>
         </thead>
         <tbody>
@@ -144,18 +164,18 @@ function GuessesTable({ guesses, answerCharacter, onCharacterClick = () => {} })
                   </div>
                 </td>
                 {ATTRIBUTE_COLUMNS.map(column => {
-                  const { tokens, isMatch } = getAttributeDisplay(attrMap, column);
-                  const displayTokens = tokens.length > 0 ? tokens : ['未知'];
+                  const { tokens, matchedSet } = getAttributeDisplay(attrMap, column);
+                  const displayTokens = tokens.length > 0 ? tokens : ['暂无'];
                   return (
                     <td key={column.label}>
-                      <div className={`attribute-cell ${isMatch ? 'match' : ''}`}>
+                      <div className="attribute-cell">
                         {displayTokens.map((token, tokenIndex) => (
-                          <span
+                          <TagChip
                             key={`${column.label}-${tokenIndex}-${token}`}
-                            className={`attribute-token ${token === '未知' ? 'unknown' : ''}`}
-                          >
-                            {token}
-                          </span>
+                            label={token}
+                            matched={matchedSet.has(token)}
+                            unknown={token === '暂无'}
+                          />
                         ))}
                       </div>
                     </td>
@@ -165,15 +185,14 @@ function GuessesTable({ guesses, answerCharacter, onCharacterClick = () => {} })
                   <div className="attribute-cell work-cell">
                     {displayNetTags.length > 0 ? (
                       displayNetTags.map((tag, idx) => (
-                        <span
+                        <TagChip
                           key={`${tag}-${idx}`}
-                          className={`attribute-token ${matchedNetTagSet.has(tag) ? 'match' : ''}`}
-                        >
-                          {tag}
-                        </span>
+                          label={tag}
+                          matched={matchedNetTagSet.has(tag)}
+                        />
                       ))
                     ) : (
-                      <span className="attribute-token unknown">未知</span>
+                      <TagChip label="暂无" unknown />
                     )}
                   </div>
                 </td>
@@ -181,15 +200,14 @@ function GuessesTable({ guesses, answerCharacter, onCharacterClick = () => {} })
                   <div className="attribute-cell work-cell">
                     {workTokens.length > 0 ? (
                       workTokens.map((work, idx) => (
-                        <span
+                        <TagChip
                           key={`${work}-${idx}`}
-                          className={`attribute-token ${matchedWorkTagSet.has(work) ? 'match' : ''}`}
-                        >
-                          {work}
-                        </span>
+                          label={work}
+                          matched={matchedWorkTagSet.has(work)}
+                        />
                       ))
                     ) : (
-                      <span className="attribute-token unknown">未知</span>
+                      <TagChip label="暂无" unknown />
                     )}
                   </div>
                 </td>
