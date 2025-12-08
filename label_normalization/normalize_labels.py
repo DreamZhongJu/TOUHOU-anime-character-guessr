@@ -39,6 +39,22 @@ RANDOM_STATE = 42
 # LLM 提示词与采样
 MAX_WORDS_FOR_PROMPT = 20  # 每个簇取前 N 个词作为提示，避免 prompt 过长
 
+# 防止抽象标签 / 兜底
+ABSTRACT_STOPWORDS = {"情绪", "性格", "特点", "特征", "行为", "能力", "状态", "属性", "主题", "风格", "其他特征"}
+
+# 手工覆盖：如 {cluster_id: "你希望的标签"}，优先于模型命名
+MANUAL_OVERRIDES: Dict[int, str] = {
+    # 示例：
+    # 16: "随身器具",
+    # 17: "灵履足饰",
+    # 18: "化形之力",
+    # 19: "恶作剧",
+    # 20: "侍奉女仆",
+    # 21: "兽化少女",
+    # 22: "灵羽披风",
+    # 23: "长筒足饰",
+}
+
 
 import os
 from typing import List, Sequence
@@ -85,8 +101,10 @@ def build_prompt(words: Sequence[str]) -> str:
     构造给 qwen3-max 的提示词，让它为一簇近义标签起一个“中层标签”。
 
     设计目标：
-    - 不要太抽象（禁止输出 “情绪 / 性格 / 特点 / 行为 / 能力” 这种词）
-    - 用 2~4 个汉字的自然标签：比如 “生气 / 开心 / 大方 / 胆小 / 理性 / 自信” 等
+    - 聚合“同分异构体”/近义/强弱差异，而不是抽象属性类别。
+    - 禁止抽象词（情绪/性格/特点/特征/行为/能力/状态/属性/主题/风格等）。
+    - 用 2~4 个汉字的自然标签。
+    - 如果这些词并非同一语义簇（混合类别），请改为输出多个小类标签，用“|”分隔，每个 2~4 字，不要解释。
     """
     # 去重 + 清洗
     cleaned = []
@@ -110,23 +128,17 @@ def build_prompt(words: Sequence[str]) -> str:
 
     prompt = f"""你是一个“标签归一化助手”，负责为一组含义非常接近的人物特征词，生成一个合适的“中层标签”。
 
-现在给你一组中文词语，它们都在描述人物的某些特点（可能是情绪、性格、能力、外貌、行为习惯等），语义非常接近，只是程度、修饰或表达略有不同。
+现在给你一组中文词语，它们都在描述人物的具体特点（情绪、性格、能力、外貌、行为习惯等），语义非常接近，只是程度、修饰或表达略有不同。
 
 【这组词语】：
 {word_list_str}
 
-请你根据这组词，提炼出一个**不太抽象的、日常中文中常见的上位词**，要求如下：
-
-1. 必须是中文，长度为 2～4 个汉字。
-2. 要覆盖这些词的共同含义，但不要过度抽象。
-   - 例如：["恼怒","愤怒","暴怒"] → “生气”，而不是“情绪”；
-   - ["大方","舍得","不吝啬","爱分享"] → “大方”，而不是“性格”。
-3. 尽量保持原有类别：如果这组词明显是情绪，就用情绪词；如果是性格，就用性格词；如果是能力，就用能力相关的词。
-4. 严禁输出以下这类过度抽象的大类词语：
-   - “情绪”“性格”“特点”“特征”“行为”“能力”“状态”“人物特征”等等。
-5. 不要解释，不要加标点，不要输出多项。只输出**一个最终标签**。
-
-现在请给出这一组词的最终归一化标签："""
+请按以下规则输出：
+1. 仅在它们确实属于同一语义簇（近义/同分异构/强弱差异）时，合并成 1 个标签。
+2. 标签必须具体，禁止使用“情绪”“性格”“特点”“特征”“行为”“能力”“状态”“属性”“主题”“风格”等抽象词。
+3. 标签用 2～4 个中文汉字，并保持与原词的类别一致（情绪用情绪词，性格用性格词，外貌用外貌词，能力用能力词）。
+4. 如果这些词并非同一语义簇（混合了不同类别），请输出多个小类标签，用“|”分隔，每个 2～4 个汉字，不要解释。
+5. 只输出标签，不要附加说明或标点。"""
 
     return prompt
 
@@ -163,14 +175,23 @@ def get_canonical_label_for_cluster(words: Sequence[str]) -> str:
     for ch in ["：", ":", "。", "，", "、", "（", "）", "(", ")", "；", ";", "【", "】", "[", "]", "“", "”", "\"", "'"]:
         label = label.replace(ch, "")
 
-    # 你如果非常想严格限制到 2~4 个字，也可以加一个简单裁剪规则（可选）
-    # 这里我先不强裁剪，避免把正常词截坏
-    # if len(label) > 4:
-    #     label = label[:4]
+    # 判断是否给出了拆分类别（用 | 分隔）
+    if "|" in label:
+        label = label.split("|")[0].strip()
 
-    if not label:
-        # 防御：如果模型没返回东西，给个兜底
-        label = "其他特征"
+    # 防止抽象词或空值：若命中抽象词或为空，回退到簇内代表词（最短词）
+    def pick_representative(ws: Sequence[str]) -> str:
+        cleaned = [w.strip() for w in ws if isinstance(w, str) and w.strip()]
+        if not cleaned:
+            return "其他特征"
+        return sorted(cleaned, key=lambda x: (len(x), x))[0]
+
+    if not label or label in ABSTRACT_STOPWORDS:
+        label = pick_representative(words)
+
+    # 可选的长度裁剪，避免过长
+    if len(label) > 4:
+        label = label[:4]
 
     return label
 
@@ -294,6 +315,9 @@ def canonicalize_clusters(grouped: Dict[int, List[str]]) -> Dict[int, str]:
     """
     canonical: Dict[int, str] = {}
     for cid, words in sorted(grouped.items(), key=lambda x: x[0]):
+        if cid in MANUAL_OVERRIDES:
+            canonical[cid] = MANUAL_OVERRIDES[cid]
+            continue
         top_words = words[:MAX_WORDS_FOR_PROMPT]
         canonical[cid] = get_canonical_label_for_cluster(top_words)
     return canonical
