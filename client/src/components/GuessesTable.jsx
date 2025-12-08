@@ -1,4 +1,5 @@
 import '../styles/GuessesTable.css';
+import { enrichWithTouhouData } from '../utils/touhouDataset';
 
 const ATTRIBUTE_COLUMNS = [
   { label: '族谱', keys: ['种族'] },
@@ -49,11 +50,13 @@ const buildAnswerAttributeTokenMap = (answerCharacter) => {
 };
 
 function GuessesTable({ guesses, answerCharacter, onCharacterClick = () => {} }) {
-  const answerGuess = (
+  const rawAnswerGuess = (
     Array.isArray(answerCharacter?.networkTags) && answerCharacter.networkTags.length > 0
       ? answerCharacter
       : guesses.find(g => g.isAnswer)
   ) || answerCharacter || {};
+  // 确保答案也具备 touhouProfile 以便属性/标签匹配
+  const answerGuess = rawAnswerGuess?.touhouProfile ? rawAnswerGuess : enrichWithTouhouData(rawAnswerGuess);
 
   const normalizeTags = (tags) => {
     if (!Array.isArray(tags)) return [];
@@ -71,21 +74,6 @@ function GuessesTable({ guesses, answerCharacter, onCharacterClick = () => {} })
     const metaTags = Array.isArray(character?.metaTags) ? character.metaTags : [];
     const combined = [...networkTags, ...metaTags];
     return normalizeTags(combined);
-  };
-
-  const pickDisplayNetTags = (netTags, matchedSet, limit = 5) => {
-    if (!Array.isArray(netTags) || netTags.length === 0) return [];
-    const matches = netTags.filter(tag => matchedSet.has(tag));
-    if (matches.length >= limit) {
-      return matches.slice(0, limit);
-    }
-    const remaining = netTags.filter(tag => !matchedSet.has(tag));
-    const shuffled = remaining
-      .map(tag => ({ tag, sort: Math.random() }))
-      .sort((a, b) => a.sort - b.sort)
-      .map(item => item.tag);
-    const take = Math.max(0, limit - matches.length);
-    return [...matches, ...shuffled.slice(0, take)];
   };
 
   const getWorkTokens = (character) => {
@@ -147,7 +135,7 @@ function GuessesTable({ guesses, answerCharacter, onCharacterClick = () => {} })
               workTokens.filter(token => answerWorkTokens.has(token))
             );
             const matchedNetTagSet = new Set(netTags.filter(tag => answerNetworkTags.has(tag)));
-            const displayNetTags = pickDisplayNetTags(netTags, matchedNetTagSet, 5);
+            const displayNetTags = netTags; // 显示全部标签，不做数量限制
             return (
               <tr key={guessIndex}>
                 <td>
