@@ -78,3 +78,8 @@ out
 
 # Local Netlify folder
 .netlify
+
+# 数据集（体积大，不纳入版本控制）
+数据集/
+*.xlsx
+*.csv

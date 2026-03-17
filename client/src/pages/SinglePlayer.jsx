@@ -31,7 +31,13 @@ function SinglePlayer() {
   const [useImageHint, setUseImageHint] = useState(0);
   const [detailCharacter, setDetailCharacter] = useState(null);
   const [gameSettings, setGameSettings] = useLocalStorage('singleplayer-game-settings', {
-    startYear: new Date().getFullYear() - 10,
+    maxAttempts: 10,
+    useHints: [8, 5, 3],
+    useImageHint: 0,
+    timeLimit: null,
+    selectedWorks: null,
+    // legacy fields kept for compatibility
+    startYear: 2000,
     endYear: new Date().getFullYear(),
     useSubjectPerYear: false,
     topNSubjects: 50,
@@ -41,11 +47,7 @@ function SinglePlayer() {
     addedSubjects: [],
     mainCharacterOnly: true,
     characterNum: 6,
-    maxAttempts: 10,
-    useHints: [],
-    useImageHint: 0,
     includeGame: false,
-    timeLimit: null,
     subjectSearch: true,
     characterTagNum: 6,
     subjectTagNum: 6,
@@ -198,9 +200,16 @@ function SinglePlayer() {
         guessData.networkTags = Array.from(appearances.rawTags.keys());
       }
 
+      const normName = (n) => (n || '').replace(/[\s\u3000（）()【】「」]/g, '').toLowerCase();
       const isCorrect =
         guessData.id === answerCharacter.id ||
-        (guessData.remoteId && answerCharacter.remoteId && guessData.remoteId === answerCharacter.remoteId);
+        (guessData.remoteId && answerCharacter.remoteId &&
+          guessData.remoteId === answerCharacter.remoteId) ||
+        // 名字兜底：去除空格和括号后比较（防止重复profile导致ID错位）
+        (guessData.name && answerCharacter.name &&
+          normName(guessData.name) === normName(answerCharacter.name)) ||
+        (guessData.nameCn && answerCharacter.nameCn &&
+          normName(guessData.nameCn) === normName(answerCharacter.nameCn));
       const feedback = generateFeedback(guessData, answerCharacter, currentGameSettings);
       setGuessesLeft(prev => prev - 1);
 
@@ -357,6 +366,14 @@ function SinglePlayer() {
         onHelpClick={() => setHelpPopup(true)}
       />
 
+      <div className="game-title-bar">
+        <span className="game-title">
+          {'东方猜猜呗'.split('').map((ch, i) => (
+            <span key={i} className="title-char-sp">{ch}</span>
+          ))}
+        </span>
+      </div>
+
       <div className="search-bar">
         <SearchBar
           onCharacterSelect={handleCharacterSelect}
@@ -387,6 +404,12 @@ function SinglePlayer() {
         useHints={currentGameSettings.useHints}
         onSurrender={handleSurrender}
       />
+
+      {guesses.length > 0 && (
+        <div className="section-divider">
+          <span className="section-divider-icon">✦ ✦ ✦</span>
+        </div>
+      )}
 
       <GuessesTable
         guesses={guesses}

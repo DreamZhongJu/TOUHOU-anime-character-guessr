@@ -195,7 +195,6 @@
   background-color: rgba(127, 216, 245, 0.12);
 }
 
-/* Scrollbar styling for the dropdown */
 .search-dropdown::-webkit-scrollbar {
   width: 8px;
 }
@@ -214,7 +213,6 @@
   background: rgba(217, 77, 106, 0.55);
 }
 
-/* 键盘导航选中项的样式 */
 .search-result-item.selected {
   background-color: rgba(217, 77, 106, 0.16);
   border-left: 3px solid #d94d6a;

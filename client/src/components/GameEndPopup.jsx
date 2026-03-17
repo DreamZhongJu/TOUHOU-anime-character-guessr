@@ -31,7 +31,7 @@ function GameEndPopup({ result, answer, onClose }) {
   return (
     <div className="popup-overlay">
       <div className="popup-content">
-        <button className="popup-close" onClick={onClose}><i className="fas fa-xmark"></i></button>
+        <button className="popup-close" onClick={onClose}>×</button>
         <div className="popup-header">
           <h2>{headerText}</h2>
         </div>

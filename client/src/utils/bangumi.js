@@ -18,7 +18,32 @@ import {
 
 const TOUHOU_NAME_KEY = '角色';
 const LOCAL_CHARACTERS = Array.isArray(touhouRemoteTags?.data) ? touhouRemoteTags.data : [];
-const LOCAL_PROFILES = getAllProfiles();
+
+// ── 东方正作关键词（旧作 + 整数作 + 小数点格斗/弹幕作品）──────────────────────
+const MAIN_WORK_KEYWORDS = [
+  '东方灵异传', '东方封魔录', '东方梦时空', '东方幻想乡', '东方怪绮谈',
+  '东方红魔乡', '东方妖妖梦', '东方永夜抄', '东方花映冢', '东方风神录',
+  '东方地灵殿', '东方星莲船', '东方神灵庙', '东方辉针城', '东方绀珠传',
+  '东方天空璋', '东方鬼形兽', '东方虹龙洞', '东方兽王园',
+  '东方萃梦想', '东方文花帖', '东方绯想天', '东方心绮楼', '东方凭依华',
+  '东方智灵奇传', '东方深秘录', '东方刚欲异闻',
+];
+
+function isFromMainWork(profile) {
+  const raw = profile?.basic_info?.['初登场作品'] ?? profile?.['初登场作品'];
+  const works = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+  return works.some(w => MAIN_WORK_KEYWORDS.some(kw => String(w).includes(kw)));
+}
+
+// 去重（两个 JSON 文件内容完全相同，profileSet 会注册两遍）并过滤正作角色
+const _seenProfileNames = new Set();
+const LOCAL_PROFILES = getAllProfiles().filter(p => {
+  const key = normalizeDatasetName(p.name || p.primaryName || '');
+  if (!key || _seenProfileNames.has(key)) return false;
+  _seenProfileNames.add(key);
+  return isFromMainWork(p);
+});
+
 const LOCAL_PROFILE_LIST = LOCAL_PROFILES.map((profile, idx) => ({ id: idx + 1, profile }));
 const LOCAL_PROFILE_ID_MAP = new Map(LOCAL_PROFILE_LIST.map((item) => [item.id, item.profile]));
 const PROFILE_ID_BY_PROFILE = new Map(LOCAL_PROFILE_LIST.map((item) => [item.profile, item.id]));
@@ -188,12 +213,14 @@ function getLocalCharacterEntry(id) {
 }
 
 function getCharacterImageRecord(id) {
+  // Prefer local images to avoid bgm.tv hotlink blocking
+  const localPath = `/assets/touhou_characters/${id}.jpg`;
   const img = CHARACTER_IMAGE_MAP.get(Number(id));
   const grid = img?.image_grid?.[0];
   const medium = img?.image_medium?.[0];
   return {
-    grid: grid || medium || `/assets/touhou_characters/${id}.jpg`,
-    medium: medium || grid || `/assets/touhou_characters/${id}.jpg`
+    grid: localPath || grid || medium,
+    medium: localPath || medium || grid
   };
 }
 
@@ -646,7 +673,16 @@ function filterBySettings(entry, gameSettings = {}) {
 
 async function getRandomCharacter(gameSettings = {}) {
   if (LOCAL_PROFILE_LIST.length > 0) {
-    const entry = LOCAL_PROFILE_LIST[Math.floor(Math.random() * LOCAL_PROFILE_LIST.length)];
+    let profileList = LOCAL_PROFILE_LIST;
+    if (Array.isArray(gameSettings.selectedWorks) && gameSettings.selectedWorks.length > 0) {
+      const filtered = LOCAL_PROFILE_LIST.filter(({ profile }) => {
+        const raw = profile?.basic_info?.['初登场作品'] ?? profile?.['初登场作品'];
+        const works = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+        return works.some(w => gameSettings.selectedWorks.some(kw => String(w).includes(kw)));
+      });
+      if (filtered.length > 0) profileList = filtered;
+    }
+    const entry = profileList[Math.floor(Math.random() * profileList.length)];
     const base = mapProfileToCharacter(entry.profile);
     return enrichWithTouhouData(base);
   }

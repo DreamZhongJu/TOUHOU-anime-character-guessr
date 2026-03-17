@@ -4,7 +4,7 @@
   right: 10px;
 }
 
-/* Styles specific to the SinglePlayer component */
+/* ── 主容器 ───────────────────────────────────────────────────────────────── */
 .single-player-container {
   position: relative;
   display: flex;
@@ -18,10 +18,91 @@
   margin: 0 auto;
   padding-left: 18px;
   padding-right: 18px;
-  padding-bottom: 48px;
+  padding-bottom: 64px;
 }
 
-.search-bar {
-  padding-top: 60px;
+/* ── 游戏标题 ────────────────────────────────────────────────────────────── */
+.game-title-bar {
   width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 20px 0 10px 0;
+  position: relative;
+}
+
+.game-title {
+  display: flex;
+  gap: 2px;
+  align-items: baseline;
+  position: relative;
+}
+
+/* 每个汉字独立 */
+.title-char-sp {
+  display: inline-block;
+  font-size: 24px;
+  font-weight: 900;
+  font-family: 'Ma Shan Zheng', 'Noto Sans SC', serif;
+  line-height: 1;
+  color: #7a1030;
+  letter-spacing: 3px;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+.title-char-sp:hover {
+  transform: translateY(-3px);
+  color: #d94d6a;
+}
+
+/* 两侧横线 */
+.game-title-bar::before,
+.game-title-bar::after {
+  content: '';
+  flex: 1;
+  max-width: 260px;
+  height: 1.5px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(127, 216, 245, 0.50),
+    rgba(217, 77, 106, 0.55),
+    rgba(127, 216, 245, 0.50),
+    transparent
+  );
+}
+
+/* ── 搜索区 ──────────────────────────────────────────────────────────────── */
+.search-bar {
+  padding-top: 52px;
+  width: 100%;
+}
+
+/* ── 分隔线 ──────────────────────────────────────────────────────────────── */
+.section-divider {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 14px 0 10px 0;
+}
+
+.section-divider::before,
+.section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(217, 77, 106, 0.35),
+    rgba(127, 216, 245, 0.35),
+    rgba(217, 77, 106, 0.35),
+    transparent
+  );
+}
+
+.section-divider-icon {
+  font-size: 14px;
+  color: rgba(217, 77, 106, 0.55);
+  letter-spacing: 6px;
 }
