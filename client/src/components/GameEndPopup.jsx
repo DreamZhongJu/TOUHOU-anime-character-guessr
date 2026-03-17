@@ -24,6 +24,7 @@ function GameEndPopup({ result, answer, onClose }) {
               src={imageSrc}
               alt={answer.name}
               className="answer-character-image"
+              onError={e => { e.currentTarget.src = (import.meta.env.BASE_URL || '/') + 'assets/icon.jpg'; }}
             />
             <div className="answer-character-info">
               <div className="character-name-container">
