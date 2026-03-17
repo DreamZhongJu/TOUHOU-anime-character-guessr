@@ -387,6 +387,14 @@ function SinglePlayer() {
         />
       </div>
 
+      <div className="range-notice">
+        {currentGameSettings.selectedWorks ? (
+          <>当前出题范围：<strong>{currentGameSettings.selectedWorks.length}</strong> 部作品 · <span className="range-hint" onClick={() => setSettingsPopup(true)}>在设置中调整 →</span></>
+        ) : (
+          <>当前出题范围：<strong>全部作品</strong> · <span className="range-hint" onClick={() => setSettingsPopup(true)}>在设置中调整 →</span></>
+        )}
+      </div>
+
       {currentGameSettings.timeLimit && (
         <Timer
           timeLimit={currentGameSettings.timeLimit}

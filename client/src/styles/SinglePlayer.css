@@ -77,6 +77,26 @@
   width: 100%;
 }
 
+/* ── 出题范围提示 ───────────────────────────────────────────────────────── */
+.range-notice {
+  text-align: center;
+  font-size: 13px;
+  color: rgba(29, 27, 58, 0.55);
+  margin: 4px 0 0 0;
+}
+.range-notice strong {
+  color: rgba(29, 27, 58, 0.75);
+}
+.range-hint {
+  color: #d94d6a;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.range-hint:hover {
+  color: #7a1030;
+  text-decoration: underline;
+}
+
 /* ── 分隔线 ──────────────────────────────────────────────────────────────── */
 .section-divider {
   width: 100%;
