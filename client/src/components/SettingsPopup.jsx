@@ -43,6 +43,7 @@ function SettingsPopup({ gameSettings, onSettingsChange, onClose, onRestart, hid
   const rawSelected = gameSettings.selectedWorks;
   const selected = rawSelected == null ? null : rawSelected; // null | string[]
   const isAllSelected = selected === null || selected.length === ALL_WORKS.length;
+  const isEmptySelection = Array.isArray(selected) && selected.length === 0;
 
   function isWorkSelected(kw) {
     if (selected === null) return true;
@@ -61,7 +62,12 @@ function SettingsPopup({ gameSettings, onSettingsChange, onClose, onRestart, hid
   }
 
   function toggleAll() {
-    onSettingsChange('selectedWorks', null);
+    // 当前全选 → 清空；否则 → 全选
+    if (isAllSelected) {
+      onSettingsChange('selectedWorks', []);
+    } else {
+      onSettingsChange('selectedWorks', null);
+    }
   }
 
   function toggleGroup(groupWorks) {
@@ -70,7 +76,6 @@ function SettingsPopup({ gameSettings, onSettingsChange, onClose, onRestart, hid
     let next;
     if (allOn) {
       next = base.filter(w => !groupWorks.includes(w));
-      if (next.length === 0) return; // 不允许空选
     } else {
       next = [...new Set([...base, ...groupWorks])];
     }
@@ -85,7 +90,7 @@ function SettingsPopup({ gameSettings, onSettingsChange, onClose, onRestart, hid
     } else {
       next = [...base, kw];
     }
-    onSettingsChange('selectedWorks', next.length === ALL_WORKS.length ? null : (next.length === 0 ? null : next));
+    onSettingsChange('selectedWorks', next.length === ALL_WORKS.length ? null : next);
   }
 
   // ── 提示设置 ──────────────────────────────────────────────────────────
@@ -310,10 +315,10 @@ function SettingsPopup({ gameSettings, onSettingsChange, onClose, onRestart, hid
         <div className="popup-footer">
           {!hideRestart && (
             <>
-              <button className="restart-button" onClick={onRestart}>
+              <button className="restart-button" onClick={onRestart} disabled={isEmptySelection}>
                 重新开始
               </button>
-              <span className="footer-hint">设置改动后点击"重新开始"生效</span>
+              <span className="footer-hint">{isEmptySelection ? '请至少选择一部作品' : '设置改动后点击"重新开始"生效'}</span>
               <button className="clear-cache-button" onClick={handleClearCache}>
                 清空缓存
               </button>
