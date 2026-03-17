@@ -1,36 +1,36 @@
 /* ── 设计变量 ─────────────────────────────────────────────────────────────── */
 :root {
   --tbl-surface:   rgba(255, 255, 255, 0.92);
-  --tbl-border:    rgba(127, 146, 200, 0.28);
-  --tbl-text:      #1d1b3a;
-  --tbl-muted:     rgba(29, 27, 58, 0.6);
-  --tbl-hover:     rgba(127, 216, 245, 0.08);
+  --tbl-border:    rgba(60, 40, 50, 0.12);
+  --tbl-text:      #1d1a24;
+  --tbl-muted:     rgba(29, 26, 36, 0.55);
+  --tbl-hover:     rgba(184, 69, 88, 0.04);
 
   --match-bg:      #ddffe9;
   --match-text:    #0b7a52;
   --match-border:  #a7f3d0;
 
-  /* 三色表头 */
-  --cat-app-hd:    rgba(127, 216, 245, 0.15);   /* 外观 → aqua */
-  --cat-app-accent:#1d4a6a;
-  --cat-per-hd:    rgba(255, 196, 214, 0.22);   /* 性格 → peach */
-  --cat-per-accent:#7a1030;
-  --cat-idn-hd:    rgba(127, 216, 245, 0.10);   /* 身份 → light aqua */
-  --cat-idn-accent:#1d1b3a;
+  /* 三色表头：灰 · 红 · 墨 */
+  --cat-app-hd:    rgba(60, 40, 50, 0.06);      /* 外观 → 淡灰 */
+  --cat-app-accent:#3a3040;
+  --cat-per-hd:    rgba(184, 69, 88, 0.10);     /* 性格 → 淡红 */
+  --cat-per-accent:#7a2838;
+  --cat-idn-hd:    rgba(60, 40, 50, 0.04);      /* 身份 → 极淡灰 */
+  --cat-idn-accent:#1d1a24;
 }
 
 /* ── 外层容器 ─────────────────────────────────────────────────────────────── */
 .table-container {
   position: relative;
-  border-radius: 22px;
-  background: linear-gradient(180deg, rgba(255, 244, 249, 0.95) 0%, rgba(240, 250, 255, 0.95) 35%, rgba(255, 244, 249, 0.95) 100%);
-  padding: 20px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(250, 247, 245, 0.97) 0%, rgba(255, 255, 255, 0.97) 50%, rgba(250, 247, 245, 0.97) 100%);
+  padding: 14px;
   width: 100%;
-  min-width: 1300px;
+  min-width: 1100px;
   border: 1px solid var(--tbl-border);
   box-shadow: var(--glow), 0 14px 38px rgba(12, 22, 58, 0.08);
   overflow-x: auto;
-  margin-bottom: 22px;
+  margin-bottom: 16px;
   backdrop-filter: blur(8px);
 }
 
@@ -40,9 +40,9 @@
   inset: 10px;
   border-radius: 18px;
   background:
-    radial-gradient(ellipse at 10% 15%, rgba(127, 216, 245, 0.12), transparent 48%),
-    radial-gradient(ellipse at 85% 15%, rgba(217, 77, 106, 0.09), transparent 45%),
-    radial-gradient(ellipse at 50% 95%, rgba(255, 216, 230, 0.08), transparent 50%);
+    radial-gradient(ellipse at 10% 15%, rgba(60, 40, 50, 0.03), transparent 48%),
+    radial-gradient(ellipse at 85% 15%, rgba(184, 69, 88, 0.04), transparent 45%),
+    radial-gradient(ellipse at 50% 95%, rgba(60, 40, 50, 0.02), transparent 50%);
   pointer-events: none;
   z-index: 0;
 }
@@ -69,10 +69,10 @@
 
 /* ── 表头 ────────────────────────────────────────────────────────────────── */
 .guesses-table thead th {
-  background: linear-gradient(135deg, rgba(127, 216, 245, 0.15), rgba(255, 196, 214, 0.22));
+  background: linear-gradient(135deg, rgba(60, 40, 50, 0.04), rgba(184, 69, 88, 0.06));
   color: var(--tbl-text);
   font-weight: 800;
-  font-size: 15px;
+  font-size: 13px;
   letter-spacing: 0.2px;
   border-bottom: 1px solid var(--tbl-border);
   white-space: nowrap;
@@ -81,29 +81,29 @@
 .guesses-table thead th.cat-appearance {
   background: var(--cat-app-hd);
   color: var(--cat-app-accent);
-  border-top: 2px solid rgba(127, 216, 245, 0.55);
+  border-top: 2px solid rgba(60, 40, 50, 0.18);
 }
 .guesses-table thead th.cat-personality {
   background: var(--cat-per-hd);
   color: var(--cat-per-accent);
-  border-top: 2px solid rgba(217, 77, 106, 0.45);
+  border-top: 2px solid rgba(184, 69, 88, 0.35);
 }
 .guesses-table thead th.cat-identity {
   background: var(--cat-idn-hd);
   color: var(--cat-idn-accent);
-  border-top: 2px solid rgba(127, 216, 245, 0.35);
+  border-top: 2px solid rgba(60, 40, 50, 0.12);
 }
 
 /* ── 数据行 ─────────────────────────────────────────────────────────────── */
 .guesses-table tbody td {
-  border-bottom: 1px solid rgba(127, 146, 200, 0.14);
+  border-bottom: 1px solid rgba(60, 40, 50, 0.08);
   color: var(--tbl-text);
   background: rgba(255, 255, 255, 0.9);
 }
 .guesses-table tbody tr:hover td { background: var(--tbl-hover); }
 .guesses-table tbody tr:last-child td { border-bottom: none; }
 .guesses-table tbody tr.row-correct td {
-  background: linear-gradient(120deg, rgba(127, 216, 245, 0.06), rgba(221, 255, 233, 0.12));
+  background: rgba(221, 255, 233, 0.10);
 }
 
 /* ── 动画 ───────────────────────────────────────────────────────────────── */
@@ -123,12 +123,12 @@
 }
 
 /* ── 列宽 ───────────────────────────────────────────────────────────────── */
-.guesses-table .col-round { width: 52px; }
-.guesses-table .col-icon  { width: 54px; }
-.guesses-table .col-name  { width: 150px; text-align: left; }
-.guesses-table .col-attr  { min-width: 72px; max-width: 110px; }
-.guesses-table .col-moe   { min-width: 140px; max-width: 220px; }
-.guesses-table .col-work  { min-width: 100px; max-width: 160px; }
+.guesses-table .col-round { width: 46px; }
+.guesses-table .col-icon  { width: 52px; }
+.guesses-table .col-name  { width: 140px; text-align: left; }
+.guesses-table .col-attr  { min-width: 68px; max-width: 105px; }
+.guesses-table .col-moe   { min-width: 130px; max-width: 200px; }
+.guesses-table .col-work  { min-width: 90px; max-width: 150px; }
 
 /* ── 轮次徽章 ────────────────────────────────────────────────────────────── */
 .round-badge {
@@ -149,15 +149,15 @@
 
 /* ── 头像 ───────────────────────────────────────────────────────────────── */
 .character-icon {
-  width: 58px;
-  height: 58px;
-  border-radius: 12px;
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
   object-fit: cover;
   display: block;
   margin: 0 auto;
-  border: 2px solid rgba(127, 146, 200, 0.4);
+  border: 2px solid rgba(60, 40, 50, 0.4);
   box-shadow: 0 10px 20px rgba(12, 22, 58, 0.12);
-  background: linear-gradient(135deg, rgba(127, 216, 245, 0.12), rgba(255, 216, 230, 0.22));
+  background: linear-gradient(135deg, rgba(184, 69, 88, 0.12), rgba(184, 69, 88, 0.22));
 }
 
 /* ── 角色名称格 ─────────────────────────────────────────────────────────── */
@@ -165,13 +165,13 @@
 .character-name-container {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 9px 12px;
-  border-radius: 12px;
-  background: linear-gradient(120deg, rgba(255, 240, 246, 0.8), rgba(240, 249, 255, 0.85));
+  gap: 4px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: linear-gradient(120deg, rgba(255, 240, 246, 0.8), rgba(250, 245, 240, 0.85));
   border: 1px solid var(--tbl-border);
   transition: all 0.25s ease;
-  box-shadow: 0 12px 24px rgba(12, 22, 58, 0.06);
+  box-shadow: 0 8px 16px rgba(12, 22, 58, 0.05);
 }
 .character-name-container:hover {
   background: linear-gradient(120deg, rgba(255, 228, 240, 0.9), rgba(228, 245, 255, 0.9));
@@ -185,8 +185,8 @@
 .character-name-container.correct .character-name { color: var(--match-text); }
 .character-name-container.correct .character-name-cn { color: #0f5132; }
 
-.character-name    { font-size: 14px; font-weight: 700; line-height: 1.3; color: var(--tbl-text); }
-.character-name-cn { font-size: 11px; color: var(--tbl-muted); }
+.character-name    { font-size: 13px; font-weight: 700; line-height: 1.3; color: var(--tbl-text); }
+.character-name-cn { font-size: 10px; color: var(--tbl-muted); }
 
 /* ── 标签容器 ───────────────────────────────────────────────────────────── */
 .attribute-cell {
@@ -214,15 +214,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 7px 13px;
+  padding: 5px 10px;
   border-radius: 999px;
-  background: linear-gradient(120deg, rgba(255, 255, 255, 0.92), rgba(240, 249, 255, 0.92));
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.92), rgba(250, 245, 240, 0.92));
   color: #475569;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   font-family: inherit;
   line-height: 1.4;
-  border: 1px solid rgba(127, 146, 200, 0.32);
+  border: 1px solid rgba(60, 40, 50, 0.32);
   box-shadow: 0 6px 12px rgba(12, 22, 58, 0.08);
   white-space: nowrap;
   transition: transform 0.12s;
@@ -256,7 +256,7 @@
   font-weight: 600;
   background: rgba(255, 255, 255, 0.8);
   color: #94a3b8;
-  border: 1px solid rgba(127, 146, 200, 0.25);
+  border: 1px solid rgba(60, 40, 50, 0.25);
   letter-spacing: 0.2px;
   flex-shrink: 0;
 }

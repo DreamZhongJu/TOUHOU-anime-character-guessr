@@ -23,9 +23,9 @@
   width: 100%;
   padding: 12px 16px;
   font-size: 16px;
-  border: 1px solid rgba(127, 146, 200, 0.35);
+  border: 1px solid rgba(60, 40, 50, 0.35);
   border-radius: 14px;
-  background: linear-gradient(120deg, rgba(255, 255, 255, 0.96), rgba(240, 249, 255, 0.96));
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.96), rgba(250, 245, 240, 0.96));
   color: #1d1b3a;
   box-sizing: border-box;
   box-shadow: 0 12px 24px rgba(12, 22, 58, 0.06);
@@ -82,8 +82,8 @@
   left: 0;
   width: 100%;
   margin-top: 4px;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(240, 249, 255, 0.98));
-  border: 1px solid rgba(127, 146, 200, 0.28);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(250, 245, 240, 0.98));
+  border: 1px solid rgba(60, 40, 50, 0.28);
   border-radius: 14px;
   max-height: 300px;
   overflow-y: auto;
@@ -98,7 +98,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  border-bottom: 1px solid rgba(127, 146, 200, 0.16);
+  border-bottom: 1px solid rgba(60, 40, 50, 0.16);
 }
 
 .search-result-item:last-child {
@@ -106,7 +106,7 @@
 }
 
 .search-result-item:hover {
-  background-color: rgba(127, 216, 245, 0.08);
+  background-color: rgba(184, 69, 88, 0.08);
 }
 
 .result-character-icon {
@@ -123,7 +123,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(127, 146, 200, 0.12);
+  background-color: rgba(60, 40, 50, 0.12);
   color: rgba(29, 27, 58, 0.6);
   font-size: 12px;
   border-radius: 10px;
@@ -155,8 +155,8 @@
 
 .selected-subject-header {
   padding: 8px 12px;
-  background-color: rgba(127, 216, 245, 0.08);
-  border-bottom: 1px solid rgba(127, 146, 200, 0.16);
+  background-color: rgba(184, 69, 88, 0.08);
+  border-bottom: 1px solid rgba(60, 40, 50, 0.16);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -188,11 +188,11 @@
   justify-content: center;
   color: #b73354;
   font-weight: 500;
-  background-color: rgba(127, 216, 245, 0.05);
+  background-color: rgba(184, 69, 88, 0.05);
 }
 
 .search-result-item.load-more:hover {
-  background-color: rgba(127, 216, 245, 0.12);
+  background-color: rgba(184, 69, 88, 0.12);
 }
 
 .search-dropdown::-webkit-scrollbar {
@@ -200,7 +200,7 @@
 }
 
 .search-dropdown::-webkit-scrollbar-track {
-  background: rgba(127, 146, 200, 0.08);
+  background: rgba(60, 40, 50, 0.08);
   border-radius: 8px;
 }
 

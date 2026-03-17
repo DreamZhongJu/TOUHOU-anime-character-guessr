@@ -73,7 +73,7 @@
   color: #475569;
   font-size: 16px;
   font-weight: 500;
-  border-left: 3px solid #3b82f6;
+  border-left: 3px solid #d94d6a;
   padding-left: 10px;
 }
 
@@ -107,7 +107,7 @@
 .settings-item[data-key="yearRange"] .setting-value,
 .settings-item[data-key="maxAttempts"] .setting-value,
 .settings-item[data-key="timeLimit"] .setting-value {
-  color: #3b82f6;
+  color: #d94d6a;
 }
 
 /* 响应式样式 */
@@ -152,10 +152,10 @@
 }
 
 .preset-name {
-  color: #3b82f6;
+  color: #d94d6a;
   font-weight: 500;
   padding: 2px 8px;
-  background-color: rgba(59, 130, 246, 0.1);
+  background-color: rgba(217, 77, 106, 0.1);
   border-radius: 4px;
 }
 

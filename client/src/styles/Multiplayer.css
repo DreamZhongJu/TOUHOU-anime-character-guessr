@@ -41,7 +41,7 @@
 .join-button {
   width: 100%;
   padding: 0.75rem;
-  background-color: #4a90e2;
+  background-color: #d94d6a;
   border: none;
   border-radius: 4px;
   color: #7a1030;
@@ -52,7 +52,7 @@
 }
 
 .join-button:hover {
-  background-color: #357abd;
+  background-color: #b84558;
 }
 
 .error-message {
@@ -89,7 +89,7 @@
 
 .copy-button {
   padding: 0.75rem 1.5rem;
-  background-color: #4a90e2;
+  background-color: #d94d6a;
   border: none;
   border-radius: 4px;
   color: #7a1030;
@@ -99,7 +99,7 @@
 }
 
 .copy-button:hover {
-  background-color: #357abd;
+  background-color: #b84558;
 }
 
 .players-list {
@@ -131,12 +131,12 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #8c8cff, #6673ff);
+  background: linear-gradient(135deg, #d94d6a, #b84558);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 20px rgba(80, 90, 200, 0.25);
+  box-shadow: 0 10px 20px rgba(184, 69, 88, 0.25);
   transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
   text-decoration: none;
   z-index: 150;
@@ -150,7 +150,7 @@
 
 .floating-back-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 26px rgba(80, 90, 200, 0.3);
+  box-shadow: 0 14px 26px rgba(184, 69, 88, 0.3);
   opacity: 0.95;
 }
 
@@ -182,7 +182,7 @@
 }
 
 .host-game-controls .settings-button {
-  background-color: #4a90e2;
+  background-color: #d94d6a;
   color: #7a1030;
   border: none;
   transform: none;
@@ -190,7 +190,7 @@
 }
 
 .host-game-controls .settings-button:hover {
-  background-color: #357abd;
+  background-color: #b84558;
   color: white;
   transform: none;
 }
@@ -294,12 +294,12 @@
   font-size: 0.9rem;
   cursor: pointer;
   transition: background-color 0.2s;
-  background-color: #4a90e2;
+  background-color: #d94d6a;
   min-width: 80px;
 }
 
 .ready-button:hover {
-  background-color: #357abd;
+  background-color: #b84558;
 }
 
 .ready-button.ready {
@@ -440,7 +440,7 @@
 
 .character-details-button {
   padding: 0.6rem 1.2rem;
-  background-color: #4a90e2;
+  background-color: #d94d6a;
   color: white;
   border: none;
   border-radius: 4px;
@@ -451,7 +451,7 @@
 }
 
 .character-details-button:hover {
-  background-color: #357abd;
+  background-color: #b84558;
 }
 
 .game-end-container {
@@ -589,7 +589,7 @@
   font-size: 24px;
   /* 调大图标大小 */
   color: white;
-  background: linear-gradient(135deg, #6e8efb, #a777e3);
+  background: linear-gradient(135deg, #d94d6a, #b84558);
   padding: 16px 18px 16px 16px;
   /* 调大内边距，使按钮更大 */
   border-radius: 50%;
@@ -611,7 +611,7 @@
 .fa-angle-left:hover {
   transform: scale(1.1);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-  background: linear-gradient(135deg, #a777e3, #6e8efb);
+  background: linear-gradient(135deg, #b84558, #d94d6a);
   background-color: #e67e22;
 }
 
@@ -624,7 +624,7 @@
 
 .answer-setter-view h3 {
   text-align: center;
-  color: #4a90e2;
+  color: #d94d6a;
   margin-bottom: 20px;
 }
 
@@ -634,7 +634,7 @@
   justify-content: center;
   margin-bottom: 30px;
   padding: 15px;
-  background: rgba(74, 144, 226, 0.1);
+  background: rgba(184, 69, 88, 0.08);
   border-radius: 8px;
 }
 
@@ -656,7 +656,7 @@
 .hints-display {
   margin: 20px 0;
   padding: 15px;
-  background: rgba(74, 144, 226, 0.05);
+  background: rgba(184, 69, 88, 0.05);
   border-radius: 8px;
 }
 
@@ -685,7 +685,7 @@
 
 /* 房主转移通知样式 */
 .kick-notification.host-notification {
-  background-color: rgba(74, 144, 226, 0.9);
+  background-color: rgba(184, 69, 88, 0.9);
 }
 
 /* 重连通知样式 */

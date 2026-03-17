@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(ellipse at 20% 20%, rgba(127, 216, 245, 0.12), transparent 45%),
+  background: radial-gradient(ellipse at 20% 20%, rgba(184, 69, 88, 0.12), transparent 45%),
     radial-gradient(ellipse at 80% 10%, rgba(217, 77, 106, 0.12), transparent 45%),
     rgba(10, 8, 28, 0.52);
   display: flex;
@@ -16,14 +16,14 @@
 }
 
 .popup-content {
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(240, 249, 255, 0.96));
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(250, 245, 240, 0.96));
   border-radius: 18px;
   padding: 18px;
   width: 90%;
   max-width: 800px;
   position: relative;
   box-shadow: var(--glow), 0 20px 40px rgba(12, 22, 58, 0.16);
-  border: 1px solid rgba(127, 146, 200, 0.28);
+  border: 1px solid rgba(60, 40, 50, 0.28);
   margin: auto;
   max-height: 90vh;
   display: flex;
@@ -48,7 +48,7 @@
   top: 16px;
   right: 16px;
   background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(127, 146, 200, 0.3);
+  border: 1px solid rgba(60, 40, 50, 0.3);
   font-size: 24px;
   color: #b73354;
   cursor: pointer;
@@ -214,7 +214,7 @@
 
 .settings-select:focus {
   outline: none;
-  border-color: #646cff;
+  border-color: #b84558;
   box-shadow: 0 0 0 2px rgba(100, 108, 255, 0.1);
 }
 
@@ -226,7 +226,7 @@
   width: 16px;
   height: 16px;
   cursor: pointer;
-  accent-color: #3b82f6;
+  accent-color: #d94d6a;
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 4px;
@@ -236,8 +236,8 @@
 }
 
 .settings-row input[type="checkbox"]:checked {
-  background-color: #3b82f6;
-  border-color: #3b82f6;
+  background-color: #d94d6a;
+  border-color: #d94d6a;
 }
 
 .settings-row input[type="checkbox"]:checked::after {
@@ -316,7 +316,7 @@
 }
 
 .character-link:hover {
-  color: #646cff;
+  color: #b84558;
 }
 
 .answer-character-name {
@@ -500,7 +500,7 @@
 
 .import-button {
   padding: 4px 12px;
-  background-color: #3b82f6;
+  background-color: #d94d6a;
   color: white;
   border: none;
   border-radius: 4px;
@@ -510,7 +510,7 @@
 }
 
 .import-button:hover {
-  background-color: #2563eb;
+  background-color: #8f1231;
 }
 
 .index-info {
@@ -554,7 +554,7 @@
 
 .search-box button {
   padding: 8px 16px;
-  background-color: #4a90e2;
+  background-color: #d94d6a;
   color: white;
   border: none;
   border-radius: 4px;
@@ -563,7 +563,7 @@
 }
 
 .search-box button:hover {
-  background-color: #357abd;
+  background-color: #b84558;
 }
 
 .search-results {
@@ -693,14 +693,14 @@
 }
 
 .preset-button-export, .preset-button-import {
-  background-color: #4a90e2;
+  background-color: #d94d6a;
   color: #fff;
-  border: 1px solid #4a90e2;
+  border: 1px solid #d94d6a;
 }
 
 .preset-button-export:hover, .preset-button-import:hover {
-  background-color: #357abd;
-  border-color: #357abd;
+  background-color: #b84558;
+  border-color: #b84558;
 }
 
 @media (max-width: 640px) {
@@ -772,8 +772,8 @@
   }
 
   .settings-row input[type="checkbox"]:checked {
-    background-color: #3b82f6;
-    border-color: #3b82f6;
+    background-color: #d94d6a;
+    border-color: #d94d6a;
   }
 }
 
@@ -935,7 +935,7 @@
 
 .tag-input:focus {
   outline: none;
-  border-color: #646cff;
+  border-color: #b84558;
   box-shadow: 0 0 0 2px rgba(100, 108, 255, 0.1);
 }
 
@@ -996,18 +996,18 @@
 }
 
 .tag-suggestion.selected {
-  background: #646cff;
+  background: #b84558;
   color: white;
 }
 
 .tag-suggestion.selected:hover {
-  background: #4f46e5;
+  background: #8f1231;
 }
 
 .submit-tags-btn {
   width: 100%;
   padding: 12px;
-  background: #646cff;
+  background: #b84558;
   border: none;
   border-radius: 6px;
   color: white;
@@ -1018,7 +1018,7 @@
 }
 
 .submit-tags-btn:hover {
-  background: #4f46e5;
+  background: #8f1231;
 }
 
 .tag-groups {
@@ -1076,7 +1076,7 @@
 
 .custom-tag-input input:focus {
   outline: none;
-  border-color: #646cff;
+  border-color: #b84558;
   box-shadow: 0 0 0 2px rgba(100, 108, 255, 0.1);
 }
 

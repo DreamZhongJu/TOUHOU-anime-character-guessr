@@ -61,7 +61,7 @@
 .version-tag {
   display: inline-block;
   padding: 2px 8px;
-  background-color: #3b82f6;
+  background-color: #d94d6a;
   color: white;
   border-radius: 4px;
   font-size: 14px;
@@ -81,13 +81,13 @@
 }
 
 .announcement-text a {
-  color: #3b82f6;
+  color: #d94d6a;
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 .announcement-text a:hover {
-  color: #2563eb;
+  color: #8f1231;
   text-decoration: underline;
 }
 
@@ -102,7 +102,7 @@
   margin: 10px auto 0;
   padding: 8px 15px;
   background-color: #f1f5f9;
-  color: #3b82f6;
+  color: #d94d6a;
   border: none;
   border-radius: 4px;
   font-size: 14px;

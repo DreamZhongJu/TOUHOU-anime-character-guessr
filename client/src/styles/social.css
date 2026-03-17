@@ -2,11 +2,11 @@
   display: flex;
   align-items: center;
   gap: 15px;
-  background: linear-gradient(135deg, rgba(255, 240, 246, 0.9), rgba(240, 249, 255, 0.9));
+  background: linear-gradient(135deg, rgba(255, 240, 246, 0.9), rgba(250, 245, 240, 0.9));
   padding: 10px 14px;
   border-radius: 14px;
   box-shadow: 0 12px 24px rgba(12, 22, 58, 0.12);
-  border: 1px solid rgba(127, 146, 200, 0.26);
+  border: 1px solid rgba(60, 40, 50, 0.26);
   backdrop-filter: blur(6px);
 }
 

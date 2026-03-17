@@ -1,7 +1,7 @@
 .container {
   max-width: none;
   width: 100%;
-  min-width: 1400px;
+  min-width: 1200px;
   margin: 96px auto 0 auto;
   padding: 2.4rem;
   position: relative;
@@ -31,7 +31,7 @@
 .restart-button {
   padding: 10px 26px;
   font-size: 16px;
-  border: 1px solid rgba(127, 216, 245, 0.4);
+  border: 1px solid rgba(184, 69, 88, 0.4);
   border-radius: 14px;
   background: linear-gradient(135deg, #ffe1ec, #fff4f9);
   color: var(--ink);
@@ -43,7 +43,7 @@
 .restart-button:hover {
   background: linear-gradient(135deg, #ffd1e2, #ffe8f1);
   transform: translateY(-2px);
-  box-shadow: 0 16px 36px rgba(127, 216, 245, 0.25);
+  box-shadow: 0 16px 36px rgba(184, 69, 88, 0.25);
 }
 
 .clear-cache-button {
@@ -118,10 +118,10 @@
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: linear-gradient(135deg, rgba(127, 216, 245, 0.12), rgba(255, 216, 230, 0.18));
+  background: linear-gradient(135deg, rgba(184, 69, 88, 0.12), rgba(184, 69, 88, 0.18));
   border-radius: 12px;
   box-shadow: 0 12px 24px rgba(12, 22, 58, 0.06);
-  border: 1px solid rgba(127, 146, 200, 0.28);
+  border: 1px solid rgba(60, 40, 50, 0.28);
 }
 
 .hint-label {
