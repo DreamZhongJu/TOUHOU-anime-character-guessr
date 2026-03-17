@@ -28,8 +28,20 @@ function GameInfo({ gameEnd, guessesLeft, onRestart, finishInit, hints, useHints
             </div>
           ))}
           {guessesLeft <= useImageHint && imgHint && (
-            <div className="hint-container">
-              <img className="hint-image" src={imgHint} style={{ height: '200px', filter: `blur(${guessesLeft}px)` }} alt="神社提示" />
+            <div className="hint-container image-hint-container">
+              <span className="hint-label">灵感映像：</span>
+              <img
+                className="hint-image"
+                src={imgHint}
+                style={{
+                  height: '160px',
+                  borderRadius: '12px',
+                  filter: `blur(${Math.max(1, guessesLeft * 3)}px)`,
+                  transition: 'filter 0.5s ease',
+                }}
+                alt="神社提示"
+              />
+              <span className="hint-sub">（剩余次数越少越清晰）</span>
             </div>
           )}
         </div>

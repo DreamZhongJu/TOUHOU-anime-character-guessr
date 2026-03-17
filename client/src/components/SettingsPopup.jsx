@@ -293,19 +293,35 @@ function SettingsPopup({ gameSettings, onSettingsChange, onClose, onRestart, hid
               )}
 
               <div className="settings-row">
-                <label className="settings-label">图片提示（剩余次数为</label>
-                <input
-                  className="settings-number"
-                  type="number"
-                  min="0"
-                  max="10"
-                  value={gameSettings.useImageHint}
-                  onChange={(e) => {
-                    const value = Math.max(0, Math.min(10, parseInt(e.target.value) || 0));
-                    onSettingsChange('useImageHint', value);
-                  }}
-                />
-                <span className="settings-unit">时显示，0关闭）</span>
+                <label className="settings-label">图片提示</label>
+                <label className="toggle-label">
+                  <input
+                    type="checkbox"
+                    className="toggle-input"
+                    checked={gameSettings.useImageHint > 0}
+                    onChange={e => {
+                      onSettingsChange('useImageHint', e.target.checked ? 5 : 0);
+                    }}
+                  />
+                  <span className="toggle-track"><span className="toggle-thumb" /></span>
+                </label>
+                {gameSettings.useImageHint > 0 && (
+                  <>
+                    <span className="settings-unit">剩余</span>
+                    <input
+                      className="settings-number hint-number"
+                      type="number"
+                      min="1"
+                      max={gameSettings.maxAttempts || 10}
+                      value={gameSettings.useImageHint}
+                      onChange={(e) => {
+                        const value = Math.max(1, Math.min(gameSettings.maxAttempts || 10, parseInt(e.target.value) || 1));
+                        onSettingsChange('useImageHint', value);
+                      }}
+                    />
+                    <span className="settings-unit">次时显示模糊图片</span>
+                  </>
+                )}
               </div>
             </div>
           </section>
