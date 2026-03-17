@@ -35,7 +35,10 @@ function SinglePlayer() {
     useHints: [8, 5, 3],
     useImageHint: 0,
     timeLimit: null,
-    selectedWorks: null,
+    selectedWorks: [
+      '东方花映冢', '东方风神录', '东方地灵殿', '东方星莲船', '东方神灵庙',
+      '东方辉针城', '东方绀珠传', '东方天空璋', '东方鬼形兽', '东方虹龙洞', '东方兽王园',
+    ],
     // legacy fields kept for compatibility
     startYear: 2000,
     endYear: new Date().getFullYear(),
@@ -219,6 +222,7 @@ function SinglePlayer() {
         name: guessData.name,
         nameCn: guessData.nameCn,
         nameEn: guessData.nameEn,
+        summary: guessData.summary || '',
         gender: guessData.gender,
         genderFeedback: guessData.gender === answerCharacter.gender ? 'yes' : 'no',
         metaTags: Array.isArray(guessData.metaTags) ? guessData.metaTags : [],

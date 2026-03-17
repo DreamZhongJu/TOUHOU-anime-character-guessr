@@ -28,15 +28,8 @@ function GameEndPopup({ result, answer, onClose }) {
             />
             <div className="answer-character-info">
               <div className="character-name-container">
-                <a
-                  href={`https://bgm.tv/character/${answer.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="character-link"
-                >
-                  <div className="answer-character-name">{answer.name}</div>
-                  <div className="answer-character-name-cn">{answer.nameCn}</div>
-                </a>
+                <div className="answer-character-name">{answer.name}</div>
+                <div className="answer-character-name-cn">{answer.nameCn}</div>
               </div>
 
               {answer.appearances && answer.appearances.length > 0 && (
