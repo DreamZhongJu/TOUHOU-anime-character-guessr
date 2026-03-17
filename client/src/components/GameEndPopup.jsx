@@ -1,13 +1,8 @@
 import '../styles/popups.css';
-import subaruIcon from '/assets/subaru.jpg';
-import { useState } from 'react';
-import TagContributionPopup from './TagContributionPopup';
 import { idToTags } from '../data/id_tags';
 import { getCharacterImageByCharacter } from '../utils/bangumi';
 
 function GameEndPopup({ result, answer, onClose }) {
-  const [showTagPopup, setShowTagPopup] = useState(false);
-
   const headerText = (() => {
     if (result === 'win') return '🎉 占卜成功，灵梦对你点头认可！';
     if (result === 'detail') return '角色详情';
@@ -15,18 +10,6 @@ function GameEndPopup({ result, answer, onClose }) {
   })();
 
   const imageSrc = getCharacterImageByCharacter(answer);
-
-  if (showTagPopup) {
-    return (
-      <TagContributionPopup
-        character={answer}
-        onClose={() => {
-          setShowTagPopup(false);
-          onClose();
-        }}
-      />
-    );
-  }
 
   return (
     <div className="popup-overlay">
@@ -53,15 +36,6 @@ function GameEndPopup({ result, answer, onClose }) {
                   <div className="answer-character-name">{answer.name}</div>
                   <div className="answer-character-name-cn">{answer.nameCn}</div>
                 </a>
-                <div className="button-container">
-                  <button
-                    className="contribute-tag-btn"
-                    onClick={() => setShowTagPopup(true)}
-                  >
-                    贡献标签
-                  </button>
-                  <img src={subaruIcon} alt="" className="button-icon" />
-                </div>
               </div>
 
               {answer.appearances && answer.appearances.length > 0 && (

@@ -60,7 +60,8 @@ const NAME_TO_REMOTE_ID = (() => {
   });
   return map;
 })();
-const PLACEHOLDER_IMAGE = '/assets/icon.jpg';
+const BASE = import.meta.env.BASE_URL || '/';
+const PLACEHOLDER_IMAGE = `${BASE}assets/icon.jpg`;
 const SUBJECT_DETAIL_MAP = new Map((subjectDetailsData?.data || []).map((entry) => [Number(entry.id), entry]));
 const CHARACTER_SUBJECT_MAP = new Map(
   (characterSubjectsData?.data || []).map((entry) => [Number(entry.characterId), entry.subjects || []])
@@ -145,7 +146,7 @@ function getCharacterImageByCharacter(character) {
   if (profileImg) return profileImg;
   if (directImg) return directImg;
   const remoteId = character?.remoteId || (profile ? getRemoteIdFromProfile(profile) : null);
-  if (remoteId) return `/assets/touhou_characters/${remoteId}.jpg`;
+  if (remoteId) return `${BASE}assets/touhou_characters/${remoteId}.jpg`;
   return PLACEHOLDER_IMAGE;
 }
 
@@ -214,7 +215,7 @@ function getLocalCharacterEntry(id) {
 
 function getCharacterImageRecord(id) {
   // Prefer local images to avoid bgm.tv hotlink blocking
-  const localPath = `/assets/touhou_characters/${id}.jpg`;
+  const localPath = `${BASE}assets/touhou_characters/${id}.jpg`;
   const img = CHARACTER_IMAGE_MAP.get(Number(id));
   const grid = img?.image_grid?.[0];
   const medium = img?.image_medium?.[0];

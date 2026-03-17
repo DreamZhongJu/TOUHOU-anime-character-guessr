@@ -278,7 +278,7 @@ function GuessesTable({ guesses, answerCharacter, onCharacterClick = () => {} })
                     src={guess.icon}
                     alt={guess.name || primaryName}
                     className="character-icon"
-                    onError={e => { e.currentTarget.src = '/assets/icon.jpg'; }}
+                    onError={e => { e.currentTarget.src = (import.meta.env.BASE_URL || '/') + 'assets/icon.jpg'; }}
                   />
                 </td>
 
