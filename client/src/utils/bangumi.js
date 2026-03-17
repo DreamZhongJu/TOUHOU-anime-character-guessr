@@ -154,10 +154,10 @@ function buildCharacterFromProfile(profile, id) {
   const primaryName = toArray(profile?.basic_info?.['本名'] || profile?.primaryName || profile?.name)[0] || profile?.name || '未知';
   const translatedName = toArray(profile?.basic_info?.['译名'] || profile?.translatedName)[0] || primaryName;
   const remoteId = getRemoteIdFromProfile(profile);
-  // 图片：优先本地文件，仅在文件确实存在时使用
-  const profileImg = profile?.image || profile?.avatar || '';
+  // 图片：优先本地文件（确保可靠），再回退到远程profile图
   const localImg = remoteId ? `${BASE}assets/touhou_characters/${remoteId}.jpg` : '';
-  const image = profileImg || localImg || PLACEHOLDER_IMAGE;
+  const profileImg = profile?.image || profile?.avatar || '';
+  const image = localImg || profileImg || PLACEHOLDER_IMAGE;
   const metaTags = toArray(profile?.basic_info?.['萌点'] || profile?.['萌点']);
   // 摘要：从 SUMMARY_MAP 查找（按 remoteId）
   const summary = (remoteId ? SUMMARY_MAP.get(Number(remoteId)) : '') || '';
