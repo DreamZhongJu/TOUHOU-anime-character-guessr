@@ -111,7 +111,7 @@ function activityMatches(token, answerSet) {
 // ─── 萌点分类 ──────────────────────────────────────────────────────────────────
 const APPEARANCE_TAGS = new Set([
   '发型','单马尾','双马尾发','刘海','黑长直','黑长直发','鬓发样式',
-  '白发红眼','发色异色','发型装饰','遮眼发','发饰','螺旋结构',
+  '白发红眼','发色异色','发型装饰','遮眼发','发饰样式','螺旋结构',
   '长裙类服','裙装类型','服装类型','服饰特征','服饰配件','和服','传统服饰',
   '荷叶边服','水手服','泡泡袖','灯笼袖','连体服饰','女仆',
   '帽子','帽子类型','宽檐帽','斗笠','丝带','头冠饰','手部配饰','眼镜',
@@ -191,6 +191,43 @@ function buildAnswerAttrMap(answerCharacter) {
   return map;
 }
 
+// ─── 每行数据预计算 ───────────────────────────────────────────────────────────
+function computeRowData(guess, gi, total, answerAttrMap, answerCatSets) {
+  const round = total - gi;
+  const enriched = guess.touhouProfile ? guess : enrichWithTouhouData(guess);
+  const attrMap = {};
+  (enriched.touhouAttributes || []).forEach(a => { attrMap[a.key] = a; });
+  const moeTags  = getMoeTags(enriched);
+  const workTags = getWorkTags(enriched);
+  const primaryName = getProfileValue(enriched, '本名')[0]
+    || enriched.nameCn || enriched.name || '';
+  const isNewest = gi === 0;
+
+  const attrCols = ATTRIBUTE_COLUMNS.map(col => {
+    const rawVals = col.keys.flatMap(k => {
+      const attr = attrMap[k];
+      if (!attr?.value || attr.value === '暂无') return [];
+      return Array.isArray(attr.value) ? attr.value : [attr.value];
+    });
+    const tokens = col.normalize ? col.normalize(rawVals) : rawVals.flatMap(splitValue);
+    const answerSet = answerAttrMap.get(col.label) || new Set();
+    const isActivity = col.label === '活动范围';
+    const matchFn = isActivity ? t => activityMatches(t, answerSet) : t => answerSet.has(t);
+    const display = tokens.length > 0 ? tokens : ['暂无'];
+    return { col, display, matchFn };
+  });
+
+  const moeCols = MOE_CATEGORIES.map(({ label, tagSet, colorClass }, ci) => {
+    const catTags = moeTags.filter(t => tagSet.has(t));
+    const answerCatSet = answerCatSets[ci];
+    const matchedSet = new Set(catTags.filter(t => answerCatSet.has(t)));
+    return { label, colorClass, catTags, matchedSet };
+  });
+
+  const worksDisplay = workTags.length > 0 ? workTags : ['暂无'];
+  return { guess, round, primaryName, isNewest, attrCols, moeCols, worksDisplay };
+}
+
 // ─── 子组件 ──────────────────────────────────────────────────────────────────
 function TagChip({ label, matched = false, unknown = false }) {
   const cls = ['attribute-token', matched && 'match', unknown && 'unknown']
@@ -228,134 +265,165 @@ function GuessesTable({ guesses, answerCharacter, onCharacterClick = () => {} })
   );
 
   const total = guesses.length;
+  const rows = [...guesses].reverse().map((guess, gi) =>
+    computeRowData(guess, gi, total, answerAttrMap, answerCatSets)
+  );
+
+  const placeholderSrc = (import.meta.env.BASE_URL || '/') + 'assets/icon.jpg';
 
   return (
-    <div className="table-container">
-      <table className="guesses-table">
-        <thead>
-          <tr>
-            <th className="col-round"></th>
-            <th className="col-icon"></th>
-            <th className="col-name">角色信息</th>
-            {ATTRIBUTE_COLUMNS.map(col => (
-              <th key={col.label} className="col-attr">{col.label}</th>
-            ))}
-            {MOE_CATEGORIES.map(cat => (
-              <th key={cat.label} className={`col-moe ${cat.colorClass}`}>{cat.label}</th>
-            ))}
-            <th className="col-work">初登场作品</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {[...guesses].reverse().map((guess, gi) => {
-            const round = total - gi;
-            const enriched = guess.touhouProfile ? guess : enrichWithTouhouData(guess);
-            const attrMap = {};
-            (enriched.touhouAttributes || []).forEach(a => { attrMap[a.key] = a; });
-            const moeTags  = getMoeTags(enriched);
-            const workTags = getWorkTags(enriched);
-            const primaryName = getProfileValue(enriched, '本名')[0]
-              || enriched.nameCn || enriched.name || '';
-            // 用 gi 作动画延迟（最新猜的 gi=0 不延迟，旧的 gi 大则跳过动画）
-            const isNewest = gi === 0;
-
-            return (
+    <>
+      {/* ── 桌面表格视图 ─────────────────────────────────────────────────── */}
+      <div className="table-container">
+        <table className="guesses-table">
+          <thead>
+            <tr>
+              <th className="col-round"></th>
+              <th className="col-icon"></th>
+              <th className="col-name">角色信息</th>
+              {ATTRIBUTE_COLUMNS.map(col => (
+                <th key={col.label} className="col-attr">{col.label}</th>
+              ))}
+              {MOE_CATEGORIES.map(cat => (
+                <th key={cat.label} className={`col-moe ${cat.colorClass}`}>{cat.label}</th>
+              ))}
+              <th className="col-work">初登场作品</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ guess, round, primaryName, isNewest, attrCols, moeCols, worksDisplay }) => (
               <tr
-                key={guess.id + '-' + gi}
+                key={guess.id + '-' + round}
                 className={[
                   guess.isAnswer ? 'row-correct' : '',
                   isNewest ? 'row-enter' : '',
                 ].filter(Boolean).join(' ')}
               >
-                {/* 轮次 */}
-                <td className="col-round">
-                  <RoundBadge round={round} />
-                </td>
-
-                {/* 头像 */}
+                <td className="col-round"><RoundBadge round={round} /></td>
                 <td className="col-icon">
                   <img
                     src={guess.icon}
                     alt={guess.name || primaryName}
                     className="character-icon"
-                    onError={e => { e.currentTarget.src = (import.meta.env.BASE_URL || '/') + 'assets/icon.jpg'; }}
+                    onError={e => { e.currentTarget.src = placeholderSrc; }}
                   />
                 </td>
-
-                {/* 角色名 */}
                 <td className="col-name" onClick={() => onCharacterClick(guess)}>
                   <div className={`character-name-container ${guess.isAnswer ? 'correct' : ''}`}>
                     <div className="character-name">{guess.name || primaryName}</div>
                     <div className="character-name-cn">{primaryName}</div>
                   </div>
                 </td>
-
-                {/* 结构化属性列 */}
-                {ATTRIBUTE_COLUMNS.map(col => {
-                  const rawVals = col.keys.flatMap(k => {
-                    const attr = attrMap[k];
-                    if (!attr?.value || attr.value === '暂无') return [];
-                    return Array.isArray(attr.value) ? attr.value : [attr.value];
-                  });
-                  const tokens = col.normalize
-                    ? col.normalize(rawVals)
-                    : rawVals.flatMap(splitValue);
-                  const answerSet = answerAttrMap.get(col.label) || new Set();
-                  const isActivity = col.label === '活动范围';
-                  const matchFn = isActivity
-                    ? t => activityMatches(t, answerSet)
-                    : t => answerSet.has(t);
-                  const display = tokens.length > 0 ? tokens : ['暂无'];
-                  return (
-                    <td key={col.label} className="col-attr">
-                      <div className="attribute-cell">
-                        {display.map((t, i) => (
-                          <TagChip key={i} label={t}
-                            matched={t !== '暂无' && matchFn(t)}
-                            unknown={t === '暂无'} />
-                        ))}
-                      </div>
-                    </td>
-                  );
-                })}
-
-                {/* 萌点分类列 */}
-                {MOE_CATEGORIES.map(({ label, tagSet }, ci) => {
-                  const catTags = moeTags.filter(t => tagSet.has(t));
-                  const answerCatSet = answerCatSets[ci];
-                  const matchedSet = new Set(catTags.filter(t => answerCatSet.has(t)));
-                  return (
-                    <td key={label} className="col-moe">
-                      <div className="attribute-cell moe-cell">
-                        <MatchBadge matched={matchedSet.size} total={catTags.length} />
-                        {catTags.length > 0 ? catTags.map((t, i) => (
-                          <TagChip key={i} label={t} matched={matchedSet.has(t)} />
-                        )) : (
-                          <TagChip label="暂无" unknown />
-                        )}
-                      </div>
-                    </td>
-                  );
-                })}
-
-                {/* 初登场作品 */}
+                {attrCols.map(({ col, display, matchFn }) => (
+                  <td key={col.label} className="col-attr">
+                    <div className="attribute-cell">
+                      {display.map((t, i) => (
+                        <TagChip key={i} label={t}
+                          matched={t !== '暂无' && matchFn(t)}
+                          unknown={t === '暂无'} />
+                      ))}
+                    </div>
+                  </td>
+                ))}
+                {moeCols.map(({ label, catTags, matchedSet }) => (
+                  <td key={label} className="col-moe">
+                    <div className="attribute-cell moe-cell">
+                      <MatchBadge matched={matchedSet.size} total={catTags.length} />
+                      {catTags.length > 0 ? catTags.map((t, i) => (
+                        <TagChip key={i} label={t} matched={matchedSet.has(t)} />
+                      )) : (
+                        <TagChip label="暂无" unknown />
+                      )}
+                    </div>
+                  </td>
+                ))}
                 <td className="col-work">
                   <div className="attribute-cell">
-                    {workTags.length > 0 ? workTags.map((t, i) => (
-                      <TagChip key={i} label={t} matched={answerWorkTags.has(t)} />
-                    )) : (
-                      <TagChip label="暂无" unknown />
-                    )}
+                    {worksDisplay.map((t, i) => (
+                      <TagChip key={i} label={t}
+                        matched={t !== '暂无' && answerWorkTags.has(t)}
+                        unknown={t === '暂无'} />
+                    ))}
                   </div>
                 </td>
-
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ── 手机卡片视图 ──────────────────────────────────────────────────── */}
+      <div className="guess-cards-mobile">
+        {rows.map(({ guess, round, primaryName, isNewest, attrCols, moeCols, worksDisplay }) => (
+          <div
+            key={guess.id + '-card-' + round}
+            className={[
+              'guess-card',
+              guess.isAnswer ? 'card-correct' : '',
+              isNewest ? 'row-enter' : '',
+            ].filter(Boolean).join(' ')}
+          >
+            {/* 卡片头：头像 + 名字 + 轮次 */}
+            <div className="guess-card-header" onClick={() => onCharacterClick(guess)}>
+              <img
+                src={guess.icon}
+                alt={guess.name || primaryName}
+                className="character-icon"
+                onError={e => { e.currentTarget.src = placeholderSrc; }}
+              />
+              <div className={`character-name-container ${guess.isAnswer ? 'correct' : ''}`}>
+                <div className="character-name">{guess.name || primaryName}</div>
+                <div className="character-name-cn">{primaryName}</div>
+              </div>
+              <RoundBadge round={round} />
+            </div>
+
+            {/* 结构化属性 */}
+            <div className="guess-card-body">
+              {attrCols.map(({ col, display, matchFn }) => (
+                <div className="card-attr-row" key={col.label}>
+                  <span className="card-attr-label">{col.label}</span>
+                  <div className="card-attr-tags">
+                    {display.map((t, i) => (
+                      <TagChip key={i} label={t}
+                        matched={t !== '暂无' && matchFn(t)}
+                        unknown={t === '暂无'} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {/* 萌点分类 */}
+              {moeCols.map(({ label, catTags, matchedSet }) => (
+                <div className="card-attr-row" key={label}>
+                  <span className="card-attr-label">
+                    {label}
+                    <MatchBadge matched={matchedSet.size} total={catTags.length} />
+                  </span>
+                  <div className="card-attr-tags">
+                    {catTags.length > 0 ? catTags.map((t, i) => (
+                      <TagChip key={i} label={t} matched={matchedSet.has(t)} />
+                    )) : <TagChip label="暂无" unknown />}
+                  </div>
+                </div>
+              ))}
+
+              {/* 初登场作品 */}
+              <div className="card-attr-row">
+                <span className="card-attr-label">初登场</span>
+                <div className="card-attr-tags">
+                  {worksDisplay.map((t, i) => (
+                    <TagChip key={i} label={t}
+                      matched={t !== '暂无' && answerWorkTags.has(t)}
+                      unknown={t === '暂无'} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 

@@ -266,43 +266,105 @@
   border-color: #b7f5dd;
 }
 
-/* ── 响应式 ─────────────────────────────────────────────────────────────── */
+/* ── 响应式（桌面微调）────────────────────────────────────────────────────── */
 @media (max-width: 1200px) {
   .guesses-table th, .guesses-table td { padding: 5px 6px; }
   .attribute-token { font-size: 10px; padding: 2px 6px; }
   .character-name  { font-size: 13px; }
 }
 
-@media (max-width: 768px) {
-  .table-container {
-    border-radius: 10px;
-    padding: 6px;
-    /* 滚动提示 */
-    background-clip: padding-box;
-  }
-  .table-container::after {
-    content: '← 左右滑动查看 →';
-    display: block;
-    text-align: center;
-    font-size: 11px;
-    color: rgba(184, 69, 88, 0.5);
-    padding: 4px 0 2px;
-    letter-spacing: 1px;
-  }
-  .attribute-token { font-size: 9px; padding: 2px 5px; }
-  .character-icon  { width: 36px; height: 36px; border-radius: 7px; }
-  .guesses-table th, .guesses-table td { padding: 4px 5px; }
-  .guesses-table thead th { font-size: 11px; }
-  .character-name    { font-size: 12px; }
-  .character-name-cn { font-size: 9px; }
-  .character-name-container { padding: 5px 7px; gap: 2px; }
-  .round-badge { width: 36px; font-size: 9px; }
+/* ── 手机卡片视图 ────────────────────────────────────────────────────────── */
+.guess-cards-mobile {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
 
-  /* 减小列宽适应移动端 */
-  .guesses-table .col-round { width: 36px; }
-  .guesses-table .col-icon  { width: 40px; }
-  .guesses-table .col-name  { width: 110px; }
-  .guesses-table .col-attr  { min-width: 56px; max-width: 88px; }
-  .guesses-table .col-moe   { min-width: 100px; max-width: 160px; }
-  .guesses-table .col-work  { min-width: 72px; max-width: 120px; }
+.guess-card {
+  background: var(--tbl-surface);
+  border-radius: 14px;
+  border: 1px solid var(--tbl-border);
+  overflow: hidden;
+  box-shadow: var(--glow), 0 8px 20px rgba(12, 22, 58, 0.07);
+}
+
+.guess-card.card-correct {
+  border-color: rgba(82, 196, 141, 0.45);
+  box-shadow: 0 8px 20px rgba(82, 196, 141, 0.15);
+}
+
+.guess-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, rgba(60, 40, 50, 0.04), rgba(184, 69, 88, 0.06));
+  border-bottom: 1px solid var(--tbl-border);
+  cursor: pointer;
+}
+
+.guess-card-header .character-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.guess-card-header .character-name-container {
+  flex: 1;
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  gap: 2px;
+}
+
+.guess-card-header .round-badge {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.guess-card-body {
+  padding: 8px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.card-attr-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 26px;
+}
+
+.card-attr-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #7a1030;
+  white-space: nowrap;
+  min-width: 50px;
+  padding-top: 3px;
+  flex-shrink: 0;
+}
+
+.card-attr-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  flex: 1;
+}
+
+.card-attr-tags .attribute-token {
+  font-size: 11px;
+  padding: 3px 8px;
+}
+
+@media (max-width: 768px) {
+  .table-container  { display: none !important; }
+  .guess-cards-mobile { display: flex; }
 }
