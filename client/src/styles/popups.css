@@ -758,6 +758,26 @@
   }
 }
 
+@media (max-width: 400px) {
+  .popup-overlay {
+    padding: 8px;
+  }
+
+  .popup-content {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .answer-character-image {
+    width: 120px;
+    height: 170px;
+  }
+
+  .answer-character-name {
+    font-size: 20px;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   .settings-row input[type="number"],
   .settings-row input[type="text"],

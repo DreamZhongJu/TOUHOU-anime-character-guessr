@@ -383,6 +383,61 @@
   .home-side-deco { display: none; }
 }
 
+@media (max-width: 768px) {
+  .home-container {
+    padding: 32px 16px 36px;
+  }
+
+  .spell-card-inner {
+    padding: 22px 24px 20px;
+  }
+
+  .title-char {
+    font-size: 28px;
+    letter-spacing: 3px;
+  }
+
+  .home-hero {
+    margin-bottom: 28px;
+    width: 100%;
+  }
+
+  .game-modes {
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .mode-card {
+    width: 100%;
+    max-width: 340px;
+    padding: 22px 18px 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .home-container {
+    padding: 24px 12px 28px;
+  }
+
+  .spell-card-inner {
+    padding: 18px 16px 16px;
+  }
+
+  .title-char {
+    font-size: 24px;
+    letter-spacing: 2px;
+  }
+
+  .hero-subtitle {
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  .mode-card {
+    padding: 18px 14px 14px;
+  }
+}
+
 /* ── 页脚 ─────────────────────────────────────────────────────────────────── */
 .home-footer {
   font-size: 12px;

@@ -1,7 +1,6 @@
 .container {
   max-width: none;
   width: 100%;
-  min-width: 1200px;
   margin: 96px auto 0 auto;
   padding: 2.4rem;
   position: relative;
@@ -66,12 +65,48 @@
 /* Responsive */
 @media (max-width: 768px) {
   .container {
-    padding: 18px;
-    margin-top: 60px;
+    padding: 16px;
+    margin-top: 56px;
+    border-radius: 16px;
   }
 
   .social-links {
-    top: -50px;
+    top: -44px;
+  }
+
+  .game-info {
+    font-size: 15px;
+  }
+
+  .restart-button, .clear-cache-button {
+    padding: 8px 18px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 12px;
+    margin-top: 48px;
+    border-radius: 12px;
+  }
+
+  .social-links {
+    top: -36px;
+  }
+
+  .game-controls {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .restart-button, .clear-cache-button, .surrender-button {
+    padding: 7px 14px;
+    font-size: 13px;
+  }
+
+  .hint-container {
+    padding: 8px 12px;
   }
 }
 

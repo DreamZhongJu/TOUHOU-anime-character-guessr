@@ -263,3 +263,27 @@
 .popup-footer .clear-cache-button:hover {
   background: linear-gradient(135deg, #ffd8d8, #ffc0c0);
 }
+
+@media (max-width: 480px) {
+  .settings-popup-content {
+    max-width: 100% !important;
+  }
+
+  .settings-body {
+    max-height: 55vh;
+  }
+
+  .popup-footer {
+    gap: 6px;
+  }
+
+  .popup-footer .restart-button,
+  .popup-footer .clear-cache-button {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  .work-chips {
+    padding-left: 4px;
+  }
+}

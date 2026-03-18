@@ -217,3 +217,21 @@
   background-color: rgba(217, 77, 106, 0.16);
   border-left: 3px solid #d94d6a;
 }
+
+@media (max-width: 480px) {
+  .search-box {
+    height: 46px;
+    gap: 7px;
+  }
+
+  .search-button {
+    min-width: 72px;
+    font-size: 14px;
+    padding: 8px;
+  }
+
+  .search-section .search-box .search-input {
+    font-size: 15px;
+    padding: 10px 12px;
+  }
+}
